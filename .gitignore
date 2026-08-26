@@ -1,0 +1,92 @@
+# ============================================================
+# Secrets / Credentials
+# ============================================================
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Generic credential files
+credentials
+credentials.*
+*credentials*
+*credential*
+
+# Password files
+*password*
+*passwd*
+
+# Secret directories
+secrets/
+**/secrets/
+
+# Secret files
+secret.yml
+secret.yaml
+secrets.yml
+secrets.yaml
+
+# Kubernetes Secret files
+*secret.yml
+*secret.yaml
+*-secret.yml
+*-secret.yaml
+
+# SSH private keys
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+id_dsa
+id_dsa.*
+
+# Generic private keys / certificates containing private material
+*.key
+*.pem
+*.p12
+*.pfx
+*.pkcs12
+*.jks
+*.keystore
+
+# Kubernetes credentials
+kubeconfig
+kubeconfig.*
+*kubeconfig*
+
+# ============================================================
+# Logs / Dumps / Generated Data
+# ============================================================
+
+*.log
+*.dump
+*.sql
+*.bak
+*.backup
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# ============================================================
+# Temporary / Editor Files
+# ============================================================
+
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+.vscode/
+.idea/
+
+# ============================================================
+# OS Metadata
+# ============================================================
+
+.DS_Store
+Thumbs.db
