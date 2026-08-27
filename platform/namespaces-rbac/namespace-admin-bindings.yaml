@@ -1,0 +1,62 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: 담당자별 Namespace 관리자 권한 연결
+# Created: 2026-08-27 17:05:33 KST
+# Updated: 2026-08-27 17:06:40 KST
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jth-admin
+  namespace: application
+subjects:
+  - kind: ServiceAccount
+    name: jth
+    namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jth-admin
+  namespace: platform
+subjects:
+  - kind: ServiceAccount
+    name: jth
+    namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cyj-admin
+  namespace: cicd
+subjects:
+  - kind: ServiceAccount
+    name: cyj
+    namespace: cicd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cyj-admin
+  namespace: observability
+subjects:
+  - kind: ServiceAccount
+    name: cyj
+    namespace: cicd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin

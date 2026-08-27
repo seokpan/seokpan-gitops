@@ -1,0 +1,26 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: MVP 공용 작업 영역 Namespace 정의
+# Created: 2026-08-27 17:03:10 KST
+# Updated: 2026-08-27 17:03:10 KST
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: application
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cicd
