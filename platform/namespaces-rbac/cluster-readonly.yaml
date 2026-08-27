@@ -1,0 +1,73 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: Data/Infrastructure 담당자의 Cluster 조회 권한 정의
+# Created: 2026-08-27 17:05:33 KST
+# Updated: 2026-08-27 17:05:33 KST
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: seokpan-cluster-readonly
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - nodes
+      - pods
+      - services
+      - endpoints
+      - persistentvolumes
+      - persistentvolumeclaims
+      - events
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+      - volumeattachments
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ksh-cluster-readonly
+subjects:
+  - kind: ServiceAccount
+    name: ksh
+    namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: seokpan-cluster-readonly
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lyb-cluster-readonly
+subjects:
+  - kind: ServiceAccount
+    name: lyb
+    namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: seokpan-cluster-readonly
