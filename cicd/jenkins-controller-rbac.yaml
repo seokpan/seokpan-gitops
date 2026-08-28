@@ -1,0 +1,50 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [용도] Jenkins Kubernetes Cloud Plugin이 jenkins 네임스페이스 안에서
+# 동적 Agent Pod(BuildKit rootless 등)를 생성/조회/삭제하기 위한 최소 권한.
+# 클러스터 전역 권한이 아니라 jenkins 네임스페이스로 범위를 제한한 Role입니다.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-controller
+  namespace: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-agent-manager
+  namespace: jenkins
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+    # BuildKit rootless agent volume이 참조하는 harbor-robot-dockerconfig Secret 조회용.
+    # 필요 이상으로 넓지 않은지(create/update 불필요) 검토 완료.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-agent-manager-binding
+  namespace: jenkins
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-controller
+    namespace: jenkins
+roleRef:
+  kind: Role
+  name: jenkins-agent-manager
+  apiGroup: rbac.authorization.k8s.io
+

@@ -1,0 +1,52 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [요구사항 근거] 12 문서: "Grafana | Dashboard·Datasource가 Provisioning 파일로만
+# 복원되는지(UI 직접 변경이 아님)" — 즉 UI에서 직접 만든 Dashboard는 검증 대상이 아니며,
+# 이 ConfigMap(및 향후 추가되는 Dashboard JSON)이 유일한 진실 소스여야 합니다.
+#
+# [구조] kube-prometheus-stack Helm Chart의 Grafana sidecar 방식 사용 가정:
+# label(grafana_dashboard: "1")이 붙은 ConfigMap을 sidecar가 자동 탐지해서 Grafana에 로드.
+# Datasource(Prometheus/Loki)도 동일하게 sidecar 방식으로 Provisioning.
+#
+# [TODO] 실제 Dashboard JSON은 아직 작성 전 — 이 파일은 Datasource Provisioning +
+# 빈 Dashboard ConfigMap 뼈대만 포함. M-01~M-05 검증 축에 맞는 Dashboard는 이후 추가 예정.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"   # kube-prometheus-stack sidecar가 인식하는 라벨, 배포 시 재확인
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false   # UI 직접 수정 방지 — Provisioning 파일만 진실 소스
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc.cluster.local:3100
+        editable: false
+---
+# Dashboard ConfigMap 뼈대 예시 (M-01: 동시성 정합성 대시보드, 내용은 추후 채움)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-m01-concurrency
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  m01-concurrency.json: |
+    {
+      "title": "M-01 Concurrency Correctness (placeholder)",
+      "panels": []
+    }
+

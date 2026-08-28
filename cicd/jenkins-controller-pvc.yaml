@@ -1,0 +1,26 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [의존성] NFS Subdir Provisioner (Chart 4.0.18 / Image v4.0.2)가 클러스터에
+# 먼저 설치되어 동적 StorageClass가 존재해야 이 PVC가 Bound 됩니다.
+# observability와 동일한 선행 조건이며, storageClassName 값은 실제 설치된
+# StorageClass 이름으로 맞춰야 합니다 (아래 nfs-client는 provisioner 기본 예시명).
+#
+# [용량] jenkins_home에는 플러그인, 빌드 히스토리, 워크스페이스 캐시가 쌓입니다.
+# 20Gi는 초기값이며 실제 빌드 부하 확인 후 조정 필요.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-home
+  namespace: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/component: controller
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 20Gi
+
