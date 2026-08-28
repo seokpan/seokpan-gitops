@@ -3,7 +3,7 @@
 # Project: 石나가는 판단
 # Purpose: MVP 공용 작업 영역 Namespace 정의
 # Created: 2026-08-27 17:03:10 KST
-# Updated: 2026-08-27 17:03:10 KST
+# Updated: 2026-08-28 KST
 
 apiVersion: v1
 kind: Namespace
@@ -24,3 +24,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: cicd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: storage-infra
