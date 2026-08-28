@@ -1,0 +1,109 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [패턴 설명] MariaDB/LB-01/MaxScale/VRouter/NFS/Ansible Controller 등 외부 VM은
+# Kubernetes Pod가 아니므로 Selector 기반 Service를 쓸 수 없습니다.
+# selector 없는 Service + 수동 Endpoints 조합으로 "가상 Service"를 만들고,
+# 그 Service를 ServiceMonitor가 스크랩하도록 구성합니다.
+#
+# 아래는 MariaDB(mysqld_exporter)와 LB-01(haproxy_exporter) 2개만 예시로 작성했고,
+# 나머지 대상(MaxScale exporter, redis_exporter가 외부라면, node_exporter 등)은
+# 동일 패턴을 복제해서 추가하면 됩니다.
+#
+# [TODO - 확인 필요]
+#  - 실제 IP: 아래는 메모리에 기록된 IP를 사용했으나 최신 여부 재확인 필요
+#    (MariaDB Primary/Replica 개별 IP는 김상희 님 확인 필요 — 05 문서에 개별 IP 명시 없음)
+#  - 09 문서: "김상희 → 최유준: MariaDB exporter 계정, MaxScale REST API 접근 정보" 아직 미수령
+#  - 이유빈 님 방화벽에서 Worker 대역발 Exporter 포트(9104 등) 왕복 허용 확인 필요 (09 문서 연동 확인 항목)
+
+# ── MariaDB mysqld_exporter ──────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: mariadb-exporter
+spec:
+  ports:
+    - name: metrics
+      port: 9104   # mysqld_exporter 기본 포트
+      protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mariadb-exporter
+  namespace: monitoring
+subsets:
+  - addresses:
+      - ip: 192.168.54.0   # [TODO] MariaDB Primary 실제 IP로 교체, 김상희 님 확인 필요
+    ports:
+      - name: metrics
+        port: 9104
+        protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mariadb-exporter
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mariadb-exporter
+  endpoints:
+    - port: metrics
+      interval: 15s
+
+---
+# ── LB-01 haproxy_exporter ───────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb01-haproxy-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: lb01-haproxy-exporter
+spec:
+  ports:
+    - name: metrics
+      port: 9101   # haproxy_exporter 기본 포트
+      protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: lb01-haproxy-exporter
+  namespace: monitoring
+subsets:
+  - addresses:
+      - ip: 192.168.53.0   # [TODO] LB-01 실제 IP로 교체, 이유빈 님 확인 필요
+    ports:
+      - name: metrics
+        port: 9101
+        protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: lb01-haproxy-exporter
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lb01-haproxy-exporter
+  endpoints:
+    - port: metrics
+      interval: 15s
+

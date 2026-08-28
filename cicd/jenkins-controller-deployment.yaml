@@ -1,0 +1,108 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [의존성]
+#  - jenkins-home PVC (jenkins-controller-pvc.yaml) - NFS Provisioner 선행 필요
+#  - jenkins-jcasc ConfigMap (jenkins-jcasc-configmap.yaml)
+#  - jenkins-controller ServiceAccount (jenkins-controller-rbac.yaml)
+#  - jenkins-admin Secret [TODO] - 이 매니페스트에는 미포함, admin 계정 자격증명을 담을
+#    Secret을 별도로 생성해야 함 (git에 평문 커밋 금지 - Vault 또는 sealed-secrets 방식 검토 필요,
+#    Harbor ca.key와 동일한 원칙: 절대 git에 커밋하지 않음)
+#  - jenkins-harbor-credential Secret - Ansible이 클러스터에 직접 주입 (GitOps 미포함,
+#    harbor-robot-account-draft/tasks/jenkins_harbor_secrets.yml 참고)
+#
+# [replicas=1 고정 이유] Jenkins Controller는 Stateful 컴포넌트라 다중 replica 미지원
+# (jenkins_home 동시 쓰기 충돌). 고가용성이 필요하면 별도 백업/복구 전략(DR, M-04)으로 대응.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-controller
+  namespace: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # RWO PVC 특성상 RollingUpdate 시 신구 Pod 동시 마운트 불가
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jenkins
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jenkins
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: jenkins-controller
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:2.568.2-lts-jdk17
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: agent
+              containerPort: 50000
+          env:
+            - name: CASC_JENKINS_CONFIG
+              value: /var/jenkins_casc/jenkins.yaml
+            - name: JAVA_OPTS
+              value: "-Djenkins.install.runSetupWizard=false -Xmx2g -Xms1g"
+            - name: JENKINS_ADMIN_ID
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-admin   # [TODO] Secret 생성 필요
+                  key: username
+            - name: JENKINS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-admin   # [TODO] Secret 생성 필요
+                  key: password
+            - name: HARBOR_ROBOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-harbor-credential   # Ansible이 직접 주입 (GitOps 미포함)
+                  key: username
+            - name: HARBOR_ROBOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-harbor-credential
+                  key: password
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+            - name: jenkins-casc
+              mountPath: /var/jenkins_casc
+              readOnly: true
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: jenkins-home
+        - name: jenkins-casc
+          configMap:
+            name: jenkins-jcasc
+

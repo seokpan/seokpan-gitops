@@ -1,0 +1,190 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [배경] Calico NetworkPolicy가 단계적으로 Default Deny로 전환되는 설계라,
+# observability Sync 시점 전에 아래 허용 규칙이 먼저 있어야 배포 직후 통신이 막히지 않습니다.
+# (선행 조건 #2, README.md 참고)
+#
+# [확정 (2026-08-28, 정태훈 님 요청에 따라 정리)] 아래 통신 목록을 기준으로 작성:
+#   Prometheus → kube-state-metrics / kubelet(+cAdvisor) / node_exporter / mysqld_exporter / haproxy_exporter / FastAPI·Redis / Alertmanager
+#   Grafana → Prometheus / Loki
+#   Alloy(DaemonSet, in-cluster) → Loki
+#   Alertmanager → SMTP(외부, 587/465)
+#
+# [TODO] 실제 Default Deny 정책(GlobalNetworkPolicy 등)이 이유빈 님 쪽에서 어떤 이름/범위로
+# 적용되는지 확인 후, 아래 podSelector/namespaceSelector 라벨이 실제 배포되는 리소스와
+# 일치하는지 재검증 필요 (kube-prometheus-stack Helm Chart의 기본 라벨과 다를 수 있음).
+#
+# [TODO] 외부 VM(MariaDB/LB-01 등) IP는 servicemonitor-external-exporters.yaml과 마찬가지로
+# placeholder이며, 확정 IP로 ipBlock.cidr를 교체해야 합니다.
+# 편의상 지금은 인프라 4개 서브넷 전체(192.168.51.0/24 ~ 192.168.54.0/24)를 열어두고,
+# 실제 IP가 확정되면 /32 단위로 좁히는 걸 권장합니다 (최소 권한 원칙).
+
+# 1) Prometheus → in-cluster 대상 (kube-state-metrics, FastAPI/Redis, Alertmanager)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress-in-cluster
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}   # kube-state-metrics 네임스페이스 확정 후 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 8080    # kube-state-metrics
+    - to:
+        - namespaceSelector: {}   # FastAPI/Redis 네임스페이스(seokpan-app 등) 확정 후 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 8000    # [TODO] FastAPI/Redis 실제 metrics 포트로 교체 (servicemonitor-app.yaml 참고)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alertmanager
+      ports:
+        - protocol: TCP
+          port: 9093
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# 2) Prometheus → kubelet/cAdvisor (Node IP 직접 스크랩, Pod 대상이 아니므로 ipBlock 사용)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress-kubelet
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.54.0/24   # CP/Worker Node가 속한 서브넷, 실제 대역 재확인 필요
+      ports:
+        - protocol: TCP
+          port: 10250   # kubelet metrics/cAdvisor
+---
+# 3) Prometheus → 외부 VM Exporter (node_exporter / mysqld_exporter / haproxy_exporter)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress-external-exporters
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.51.0/24
+        - ipBlock:
+            cidr: 192.168.52.0/24
+        - ipBlock:
+            cidr: 192.168.53.0/24
+        - ipBlock:
+            cidr: 192.168.54.0/24
+      ports:
+        - protocol: TCP
+          port: 9100    # node_exporter
+        - protocol: TCP
+          port: 9104    # mysqld_exporter
+        - protocol: TCP
+          port: 9101    # haproxy_exporter
+---
+# 4) Grafana → Prometheus / Loki
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-grafana-egress-datasources
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 3100
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# 5) Alloy(DaemonSet, in-cluster) → Loki
+# [주의] 외부 VM(systemd Alloy)에서 Loki로 들어오는 경로는 이 NetworkPolicy 대상이 아님 —
+# 그건 Loki Service를 향한 Ingress 규칙(NodePort 31000)이며 이 파일 범위 밖. 별도 확인 필요.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-alloy-egress-loki
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 3100
+---
+# 6) Alertmanager → SMTP (클러스터 밖 이메일 발송)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-alertmanager-egress-smtp
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0   # [TODO] 실제 SMTP 서버 IP 확정 후 /32로 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 587
+        - protocol: TCP
+          port: 465
+

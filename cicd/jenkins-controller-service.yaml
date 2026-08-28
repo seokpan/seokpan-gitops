@@ -1,0 +1,30 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [노출 범위] ClusterIP만 (Argo CD UI와 동일한 원칙 - HAProxy/VIP 통합은 아직 미착수).
+# 지금은 port-forward로만 접근하고, jenkins.seokpan.soldesk.store hostname 연결은
+# HAProxy/Ingress 통합 시점에 별도 Ingress 리소스로 추가 예정.
+#
+# [포트 분리 이유] 8080은 Web UI/REST API, 50000은 JNLP 기반 레거시 Agent 연결용.
+# Kubernetes Cloud Plugin은 기본적으로 WebSocket(8080)을 쓰지만, 향후 확장 대비 50000도 열어둠.
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-controller
+  namespace: jenkins
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/component: controller
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: agent
+      port: 50000
+      targetPort: agent
+

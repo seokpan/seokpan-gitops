@@ -1,0 +1,54 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [보안 주의] SMTP 인증 정보는 이 파일에 평문으로 넣지 않습니다.
+# 아래 stringData의 password는 placeholder이며, 실제 값은 Vault → 이 Secret으로
+# 별도 파이프라인(예: External Secrets Operator 또는 수동 kubectl 생성 후 git 미포함)으로 주입 필요.
+# CA 키와 동일한 원칙: SMTP 비밀번호도 git에 평문 커밋 금지.
+#
+# [TODO - 확인 필요] SMTP 서버 host/port(587 또는 465 중 무엇을 쓸지), 발신 계정,
+# 수신자 목록은 아직 미확정. 09/06 문서에는 "Alertmanager SMTP :587 또는 :465"까지만 있고
+# 구체 서버 정보는 없음 — 팀 확인 필요.
+#
+# [Critical 라우팅] 09 문서 "주요 위험과 대응": "MariaDB Failover가 운영자 승인 기반 → Primary
+# 장애 Alert를 Critical(운영자 개입 필요)로 명시적으로 설계" 요구사항 반영, severity=critical
+# 라벨은 실제 PrometheusRule 작성 시 맞춰야 함(이 파일은 라우팅 뼈대만 정의).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      smtp_smarthost: "smtp.example.com:587"   # [TODO] 실제 SMTP 서버:포트로 교체
+      smtp_from: "seokpan-alert@example.com"    # [TODO] 실제 발신 계정으로 교체
+      smtp_auth_username: "seokpan-alert@example.com"
+      smtp_auth_password: "PLACEHOLDER"          # [TODO] Vault 연동으로 대체, 하드코딩 금지
+
+    route:
+      receiver: "default-email"
+      group_by: ["alertname", "namespace"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        # MariaDB Primary 장애 등 운영자 승인 기반 Failover 대상은 Critical로 별도 라우팅.
+        # 반복 알림 간격을 짧게 해서 운영자가 놓치지 않도록 함.
+        - match:
+            severity: critical
+          receiver: "critical-email"
+          repeat_interval: 30m
+
+    receivers:
+      - name: "default-email"
+        email_configs:
+          - to: "seokpan-team@example.com"   # [TODO] 실제 팀 수신 주소로 교체
+            send_resolved: true
+
+      - name: "critical-email"
+        email_configs:
+          - to: "seokpan-team@example.com"   # [TODO] Critical은 별도 수신자(예: 온콜)로 분리 검토
+            send_resolved: true
+

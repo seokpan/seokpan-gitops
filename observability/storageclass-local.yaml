@@ -1,0 +1,17 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-08-28
+#
+# [용도] Prometheus/Loki 전용 정적 Local PV(hostPath)에 사용하는 no-provisioner StorageClass.
+# 동적 프로비저닝을 하지 않으므로(provisioner: kubernetes.io/no-provisioner),
+# PV는 아래 prometheus-local-pv.yaml / loki-local-pv.yaml에서 미리 수동 생성합니다.
+#
+# [WaitForFirstConsumer] Pod가 실제 스케줄되는 Node를 먼저 확인한 뒤 PV를 Bind해서,
+# PV의 nodeAffinity와 Pod가 배치되는 Node가 어긋나는 상황을 방지합니다.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+
