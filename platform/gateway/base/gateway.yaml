@@ -1,0 +1,37 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: game.seokpan.soldesk.store 서비스 Gateway 및 TLS Listener 정의
+# Created: 2026-08-28
+# Updated: 2026-08-28
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: seokpan-gateway
+  namespace: application
+spec:
+  gatewayClassName: nginx
+
+  infrastructure:
+    parametersRef:
+      group: gateway.nginx.org
+      kind: NginxProxy
+      name: seokpan-gateway-proxy
+
+  listeners:
+    - name: http
+      hostname: game.seokpan.soldesk.store
+      protocol: HTTP
+      port: 80
+
+    - name: https
+      hostname: game.seokpan.soldesk.store
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: game-seokpan-tls
