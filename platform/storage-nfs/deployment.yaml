@@ -1,0 +1,44 @@
+# Owner: 김상희
+# Scope: Data, Storage & Recovery
+# Project: 石나가는 판단
+# Purpose: NFS Subdir External Provisioner Deployment
+# 버전 기준: 06_石나가는 판단_Ansible 자동화·테스트 설계.docx Version Lock 표 (Chart 4.0.18 / Image v4.0.2)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-client-provisioner
+  namespace: storage-infra
+  labels:
+    app: nfs-client-provisioner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: seokpan.io/nfs-k8s
+            - name: NFS_SERVER
+              value: "192.168.54.50"
+            - name: NFS_PATH
+              value: /srv/nfs/k8s
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 192.168.54.50
+            path: /srv/nfs/k8s
