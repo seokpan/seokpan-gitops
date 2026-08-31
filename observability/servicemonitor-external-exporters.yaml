@@ -1,22 +1,27 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-08-28
+# 작성 날짜: 2026-08-28 (2026-08-31 정합화 개정: namespace/실제 IP 반영)
 #
 # [패턴 설명] MariaDB/LB-01/MaxScale/VRouter/NFS/Ansible Controller 등 외부 VM은
 # Kubernetes Pod가 아니므로 Selector 기반 Service를 쓸 수 없습니다.
 # selector 없는 Service + 수동 Endpoints 조합으로 "가상 Service"를 만들고,
 # 그 Service를 ServiceMonitor가 스크랩하도록 구성합니다.
 #
-# 아래는 MariaDB(mysqld_exporter)와 LB-01(haproxy_exporter) 2개만 예시로 작성했고,
-# 나머지 대상(MaxScale exporter, redis_exporter가 외부라면, node_exporter 등)은
-# 동일 패턴을 복제해서 추가하면 됩니다.
+# 아래는 MariaDB(mysqld_exporter)와 LB-01(haproxy_exporter) 2개만 작성했고,
+# 나머지 대상(MaxScale exporter, VRouter/NFS/Ansible Controller node_exporter 등)은
+# 동일 패턴을 복제해서 추가하면 됩니다. (필요하면 이어서 작성 가능)
 #
-# [TODO - 확인 필요]
-#  - 실제 IP: 아래는 메모리에 기록된 IP를 사용했으나 최신 여부 재확인 필요
-#    (MariaDB Primary/Replica 개별 IP는 김상희 님 확인 필요 — 05 문서에 개별 IP 명시 없음)
-#  - 09 문서: "김상희 → 최유준: MariaDB exporter 계정, MaxScale REST API 접근 정보" 아직 미수령
-#  - 이유빈 님 방화벽에서 Worker 대역발 Exporter 포트(9104 등) 왕복 허용 확인 필요 (09 문서 연동 확인 항목)
+# [해결됨, 2026-08-31]
+#  - namespace: monitoring → observability (platform/namespaces-rbac 공식 5종 Namespace 기준)
+#  - MariaDB/LB-01 실제 IP: 11번 Runbook 4절 Inventory 표(05 물리 아키텍처 IP 배정표와 교차검증 완료) 반영
+#    MariaDB-01(Primary, Server-02) 192.168.52.40 / MariaDB-02(Replica, Server-01) 192.168.51.40
+#    LB-01은 192.168.53.x 대역이 아니라 10.1.93.78(별도 공인 대역)이 실제 IP
+#
+# [TODO - 여전히 확인 필요]
+#  - 09 문서: "김상희 → 최유준: MariaDB exporter 계정, MaxScale REST API 접근 정보" 수령 여부 재확인
+#  - 이유빈 님 방화벽에서 Worker 대역발 Exporter 포트(9104/9101 등) 왕복 허용 확인 (09 문서 연동 확인 항목)
+#  - 위 IP는 05 문서 확정 표 기준이며, 실제 배포 시점의 라이브 값과 다를 수 있으므로 최종 배포 전 1회 재확인 권장
 
-# ── MariaDB mysqld_exporter ──────────────────────────────
+# ── MariaDB mysqld_exporter (Primary + Replica 둘 다 포함) ──
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,18 +35,23 @@ spec:
       port: 9104   # mysqld_exporter 기본 포트
       protocol: TCP
 ---
-apiVersion: v1
-kind: Endpoints
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
 metadata:
   name: mariadb-exporter
   namespace: observability
-subsets:
+  labels:
+    kubernetes.io/service-name: mariadb-exporter
+addressType: IPv4
+ports:
+  - name: metrics
+    port: 9104
+    protocol: TCP
+endpoints:
   - addresses:
-      - ip: 192.168.54.0   # [TODO] MariaDB Primary 실제 IP로 교체, 김상희 님 확인 필요
-    ports:
-      - name: metrics
-        port: 9104
-        protocol: TCP
+      - "192.168.52.40"   # mariadb-01 (Primary, Server-02)
+  - addresses:
+      - "192.168.51.40"   # mariadb-02 (Replica, Server-01)
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -53,14 +63,13 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - monitoring
+      - observability
   selector:
     matchLabels:
       app.kubernetes.io/name: mariadb-exporter
   endpoints:
     - port: metrics
       interval: 15s
-
 ---
 # ── LB-01 haproxy_exporter ───────────────────────────────
 apiVersion: v1
@@ -76,18 +85,21 @@ spec:
       port: 9101   # haproxy_exporter 기본 포트
       protocol: TCP
 ---
-apiVersion: v1
-kind: Endpoints
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
 metadata:
   name: lb01-haproxy-exporter
   namespace: observability
-subsets:
+  labels:
+    kubernetes.io/service-name: lb01-haproxy-exporter
+addressType: IPv4
+ports:
+  - name: metrics
+    port: 9101
+    protocol: TCP
+endpoints:
   - addresses:
-      - ip: 192.168.53.0   # [TODO] LB-01 실제 IP로 교체, 이유빈 님 확인 필요
-    ports:
-      - name: metrics
-        port: 9101
-        protocol: TCP
+      - "10.1.93.78"   # LB-01 실제 IP (192.168.53.x 대역 아님)
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -99,11 +111,10 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - monitoring
+      - observability
   selector:
     matchLabels:
       app.kubernetes.io/name: lb01-haproxy-exporter
   endpoints:
     - port: metrics
       interval: 15s
-
