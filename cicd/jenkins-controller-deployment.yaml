@@ -1,5 +1,5 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-08-28
+# 작성 날짜: 2026-08-28 (2026-08-31 정합화 개정: JDK17→21 이미지 교체)
 #
 # [의존성]
 #  - jenkins-home PVC (jenkins-controller-pvc.yaml) - NFS Provisioner 선행 필요
@@ -10,6 +10,10 @@
 #    Harbor ca.key와 동일한 원칙: 절대 git에 커밋하지 않음)
 #  - jenkins-harbor-credential Secret - Ansible이 클러스터에 직접 주입 (GitOps 미포함,
 #    harbor-robot-account-draft/tasks/jenkins_harbor_secrets.yml 참고)
+#
+# [해결됨, 2026-08-31] image를 jenkins/jenkins:2.568.2-lts-jdk17 → 2.568.2-lts-jdk21로 교체.
+# Docker Hub에서 실제 Tag 존재 확인(jenkins/jenkins:2.568.2-jdk21과 동일 digest의 alias 태그).
+# 프로젝트 Tag+Digest 고정 원칙(Harbor/Argo CD와 동일)에 맞춰 digest도 함께 고정함.
 #
 # [replicas=1 고정 이유] Jenkins Controller는 Stateful 컴포넌트라 다중 replica 미지원
 # (jenkins_home 동시 쓰기 충돌). 고가용성이 필요하면 별도 백업/복구 전략(DR, M-04)으로 대응.
@@ -40,7 +44,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: jenkins
-          image: jenkins/jenkins:2.568.2-lts-jdk17
+          image: jenkins/jenkins:2.568.2-lts-jdk21@sha256:25a061bfd6a7f954b8c2e0b6d5ad07c33e8e29364f50484ecdc4d4d7bf4800d3
           ports:
             - name: http
               containerPort: 8080
@@ -105,4 +109,3 @@ spec:
         - name: jenkins-casc
           configMap:
             name: jenkins-jcasc
-
