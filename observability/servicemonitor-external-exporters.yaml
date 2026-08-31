@@ -190,3 +190,55 @@ spec:
   endpoints:
     - port: metrics
       interval: 15s
+---
+# ── Harbor 자체 metrics ──────────────────────────────────
+# [신규, 2026-08-31] harbor role defaults의 harbor_metric_port(9090)를 스크랩 대상으로 추가.
+# node_exporter가 아니라 Harbor 자체 /metrics 엔드포인트(Prometheus 포맷 직접 노출)라
+# 별도 Job으로 분리. Path가 harbor.yml의 metric.path 설정과 다르면 아래 path 조정 필요.
+apiVersion: v1
+kind: Service
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: harbor-metrics
+spec:
+  ports:
+    - name: metrics
+      port: 9090
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    kubernetes.io/service-name: harbor-metrics
+addressType: IPv4
+ports:
+  - name: metrics
+    port: 9090
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "192.168.53.61"   # Harbor
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - observability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: harbor-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s   # Harbor 자체 API 부하 고려해 node_exporter류(15s)보다 여유있게
