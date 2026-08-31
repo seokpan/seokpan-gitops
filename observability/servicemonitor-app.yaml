@@ -10,13 +10,13 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: seokpan-app-metrics
-  namespace: monitoring
+  namespace: observability
   labels:
     release: kube-prometheus-stack   # kube-prometheus-stack이 인식하는 selector 라벨, 배포 시 재확인
 spec:
   namespaceSelector:
     matchNames:
-      - seokpan-app   # [TODO] 애플리케이션이 실제 배포되는 네임스페이스명으로 교체
+      - application
   selector:
     matchLabels:
       app.kubernetes.io/part-of: seokpan   # [TODO] 정태훈 님 쪽 실제 라벨과 확인

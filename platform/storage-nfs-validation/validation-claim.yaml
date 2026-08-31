@@ -1,0 +1,17 @@
+# Owner: 김상희
+# Scope: Data, Storage & Recovery
+# Project: 石나가는 판단
+# Purpose: 검증 전용 PVC — Argo CD Desired State에 포함하지 않고 수동 kubectl apply로만 사용
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-validation-claim
+  namespace: storage-infra
+spec:
+  storageClassName: nfs-k8s
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

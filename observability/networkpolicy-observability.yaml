@@ -1,5 +1,5 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-08-28
+# 작성 날짜: 2026-08-28 (2026-08-31 정합화 개정: namespace / kubelet CIDR / LB-01 ipBlock)
 #
 # [배경] Calico NetworkPolicy가 단계적으로 Default Deny로 전환되는 설계라,
 # observability Sync 시점 전에 아래 허용 규칙이 먼저 있어야 배포 직후 통신이 막히지 않습니다.
@@ -15,17 +15,30 @@
 # 적용되는지 확인 후, 아래 podSelector/namespaceSelector 라벨이 실제 배포되는 리소스와
 # 일치하는지 재검증 필요 (kube-prometheus-stack Helm Chart의 기본 라벨과 다를 수 있음).
 #
-# [TODO] 외부 VM(MariaDB/LB-01 등) IP는 servicemonitor-external-exporters.yaml과 마찬가지로
-# placeholder이며, 확정 IP로 ipBlock.cidr를 교체해야 합니다.
-# 편의상 지금은 인프라 4개 서브넷 전체(192.168.51.0/24 ~ 192.168.54.0/24)를 열어두고,
-# 실제 IP가 확정되면 /32 단위로 좁히는 걸 권장합니다 (최소 권한 원칙).
+# [해결됨, 2026-08-31] kubelet 대상 CIDR: 192.168.54.0/24(NFS/Ansible 서브넷, 오기)
+# → 실제 CP/Worker Node 5개 IP(/32)로 교체(05 물리 아키텍처 IP 배정표 기준)
+#
+# [해결됨, 2026-08-31] LB-01(10.1.93.78)이 51~54.0/24 어디에도 속하지 않아
+# haproxy_exporter(9101) 트래픽이 허용되지 않던 누락을 발견하여 별도 ipBlock으로 추가
+#
+# [해결됨, 2026-08-31] VRouter 1~4 IP 확보(물리아키텍처_수정 다이어그램) → 개별 ipBlock 추가
+# VRouter-01 192.168.51.10 / VRouter-02 192.168.52.10 / VRouter-03 192.168.53.10 / VRouter-04 192.168.54.10
+#
+# [TODO] loadgen IP는 여전히 미확정. 확정되면 이 규칙에 /32로 추가할 것.
+#
+# [확인 완료, 2026-08-31] "물리아키텍처_수정" 다이어그램에서 MariaDB-01/02 Primary/Replica
+# 배정, Harbor IP, NFS/Ansible Controller IP가 기존 값과 다르게 그려져 있었으나,
+# 최유준 확인 결과 기존 값이 맞고 해당 다이어그램 쪽 오탈자로 확정됨(다이어그램 수정 필요 - 별도 전달).
+# MariaDB-01(Primary, Server-02) 192.168.52.40 / MariaDB-02(Replica, Server-01) 192.168.51.40
+# Harbor 192.168.53.61 / NFS 192.168.54.50 / Ansible Controller 192.168.54.70
+
 
 # 1) Prometheus → in-cluster 대상 (kube-state-metrics, FastAPI/Redis, Alertmanager)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-in-cluster
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -39,10 +52,10 @@ spec:
         - protocol: TCP
           port: 8080    # kube-state-metrics
     - to:
-        - namespaceSelector: {}   # FastAPI/Redis 네임스페이스(seokpan-app 등) 확정 후 좁힐 것
+        - namespaceSelector: {}   # Backend(FastAPI)/Redis 네임스페이스(application) 확정 후 좁힐 것
       ports:
         - protocol: TCP
-          port: 8000    # [TODO] FastAPI/Redis 실제 metrics 포트로 교체 (servicemonitor-app.yaml 참고)
+          port: 8000    # [TODO] Backend/Redis 실제 metrics 포트로 교체 (servicemonitor-app.yaml 참고, 정태훈 확인 필요)
     - to:
         - podSelector:
             matchLabels:
@@ -63,7 +76,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-kubelet
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -73,7 +86,15 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: 192.168.54.0/24   # CP/Worker Node가 속한 서브넷, 실제 대역 재확인 필요
+            cidr: 192.168.51.20/32   # cp-01
+        - ipBlock:
+            cidr: 192.168.51.30/32   # worker-01
+        - ipBlock:
+            cidr: 192.168.52.20/32   # cp-02
+        - ipBlock:
+            cidr: 192.168.52.30/32   # worker-02
+        - ipBlock:
+            cidr: 192.168.53.20/32   # cp-03
       ports:
         - protocol: TCP
           port: 10250   # kubelet metrics/cAdvisor
@@ -83,7 +104,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-external-exporters
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -93,13 +114,23 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: 192.168.51.0/24
+            cidr: 192.168.51.0/24   # VRouter/loadgen IP 미확정으로 서브넷 유지 (TODO)
         - ipBlock:
-            cidr: 192.168.52.0/24
+            cidr: 192.168.52.0/24   # VRouter/loadgen IP 미확정으로 서브넷 유지 (TODO)
         - ipBlock:
-            cidr: 192.168.53.0/24
+            cidr: 192.168.53.0/24   # VRouter/loadgen IP 미확정으로 서브넷 유지 (TODO)
         - ipBlock:
-            cidr: 192.168.54.0/24
+            cidr: 192.168.54.0/24   # VRouter/loadgen IP 미확정으로 서브넷 유지 (TODO)
+        - ipBlock:
+            cidr: 10.1.93.78/32     # LB-01 (기존 51~54 서브넷에 없어서 누락돼 있었음)
+        - ipBlock:
+            cidr: 192.168.51.10/32   # VRouter-01
+        - ipBlock:
+            cidr: 192.168.52.10/32   # VRouter-02
+        - ipBlock:
+            cidr: 192.168.53.10/32   # VRouter-03
+        - ipBlock:
+            cidr: 192.168.54.10/32   # VRouter-04
       ports:
         - protocol: TCP
           port: 9100    # node_exporter
@@ -113,7 +144,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-grafana-egress-datasources
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -145,12 +176,12 @@ spec:
 ---
 # 5) Alloy(DaemonSet, in-cluster) → Loki
 # [주의] 외부 VM(systemd Alloy)에서 Loki로 들어오는 경로는 이 NetworkPolicy 대상이 아님 —
-# 그건 Loki Service를 향한 Ingress 규칙(NodePort 31000)이며 이 파일 범위 밖. 별도 확인 필요.
+# 그건 Loki Service를 향한 Ingress 규칙(NodePort, 포트는 미확정)이며 이 파일 범위 밖. 별도 확인 필요.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-alloy-egress-loki
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -171,7 +202,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-alertmanager-egress-smtp
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -187,4 +218,3 @@ spec:
           port: 587
         - protocol: TCP
           port: 465
-

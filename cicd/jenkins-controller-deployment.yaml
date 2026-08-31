@@ -17,7 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jenkins-controller
-  namespace: jenkins
+  namespace: cicd
   labels:
     app.kubernetes.io/name: jenkins
     app.kubernetes.io/component: controller

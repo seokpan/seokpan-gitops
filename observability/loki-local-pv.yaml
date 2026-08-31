@@ -40,7 +40,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: loki-local-pvc
-  namespace: monitoring
+  namespace: observability
   labels:
     app.kubernetes.io/name: loki
     app.kubernetes.io/component: single-binary
