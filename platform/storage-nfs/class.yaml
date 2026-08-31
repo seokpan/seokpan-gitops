@@ -1,0 +1,14 @@
+# Owner: 김상희
+# Scope: Data, Storage & Recovery
+# Project: 石나가는 판단
+# Purpose: NFS 기반 동적 Provisioning StorageClass
+# 보완: archiveOnDelete를 "true"로 변경 — PVC 삭제 시 NFS 하위 디렉터리를 즉시 삭제하지 않고
+#       archived- 접두사로 보존(Redis AOF/PVC 복구 계약 F 문서와 충돌 방지, seokpan-infra#44 리뷰 반영)
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-k8s
+provisioner: seokpan.io/nfs-k8s
+parameters:
+  archiveOnDelete: "true"

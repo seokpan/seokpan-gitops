@@ -1,0 +1,23 @@
+# Owner: 김상희
+# Scope: Data, Storage & Recovery
+# Project: 石나가는 판단
+# Purpose: 검증 전용 Pod — Argo CD Desired State에 포함하지 않고 수동 kubectl apply로만 사용
+# 보완: busybox 이미지 태그 고정 (latest 금지 원칙 반영, seokpan-infra#44 리뷰 반영)
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-validation-pod
+  namespace: storage-infra
+spec:
+  containers:
+    - name: validation
+      image: busybox:1.36.1
+      command: ["sh", "-c", "echo 'stone_game NFS validation' > /mnt/validation.txt && sleep 3600"]
+      volumeMounts:
+        - name: nfs-validation-vol
+          mountPath: /mnt
+  volumes:
+    - name: nfs-validation-vol
+      persistentVolumeClaim:
+        claimName: nfs-validation-claim
