@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: monitoring
+  namespace: observability
   labels:
     grafana_datasource: "1"   # kube-prometheus-stack sidecar가 인식하는 라벨, 배포 시 재확인
 data:
@@ -40,7 +40,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-m01-concurrency
-  namespace: monitoring
+  namespace: observability
   labels:
     grafana_dashboard: "1"
 data:
