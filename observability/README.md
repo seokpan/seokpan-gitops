@@ -39,5 +39,26 @@ Staging이 사용하기 때문입니다. 다만 observability Application의 Syn
 observability 매니페스트를 Root에 연결하기 전 팀과 상태를 한 번 더 확인합니다.
 
 ---
+
+## Application ServiceMonitor 보류 (신규, 2026-08-31)
+
+`servicemonitor-app.yaml`은 Backend(FastAPI/Redis) Service 매니페스트가 `apps/` 하위에
+아직 존재하지 않아 `servicemonitor-app.yaml.pending`으로 확장자를 바꿔 Root Application
+동기화 대상에서 제외했습니다(`kubectl apply -f`/Argo CD 디렉토리 소스 모두 `.yaml`만 인식).
+
+### 확정된 규칙 (팀 합의, 2026-08-31)
+
+| 항목 | 값 |
+|---|---|
+| Namespace | `application` |
+| Service Port 이름 | `http` |
+| Metrics 경로 | `/metrics` |
+
+### 재활성화 조건
+
+1. `apps/` 하위에 Backend Service 매니페스트가 실제로 배포됨
+2. 정태훈 님과 실제 Service Label이 위 표와 일치하는지 확인
+   (파일 내 `app.kubernetes.io/part-of: seokpan` selector는 가정값이며 실제 라벨로 교체 필요)
+3. 위 확인 후 `.pending` 확장자를 제거(`servicemonitor-app.yaml`로 rename)하고 PR
 작성자: 최유준
 작성 날짜: 2026-08-28
