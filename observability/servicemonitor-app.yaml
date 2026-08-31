@@ -10,7 +10,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: seokpan-app-metrics
-  namespace: monitoring
+  namespace: observability
   labels:
     release: kube-prometheus-stack   # kube-prometheus-stack이 인식하는 selector 라벨, 배포 시 재확인
 spec:

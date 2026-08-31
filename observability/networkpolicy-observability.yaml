@@ -25,7 +25,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-in-cluster
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -63,7 +63,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-kubelet
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -83,7 +83,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-prometheus-egress-external-exporters
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -113,7 +113,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-grafana-egress-datasources
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -150,7 +150,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-alloy-egress-loki
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:
@@ -171,7 +171,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-alertmanager-egress-smtp
-  namespace: monitoring
+  namespace: observability
 spec:
   podSelector:
     matchLabels:

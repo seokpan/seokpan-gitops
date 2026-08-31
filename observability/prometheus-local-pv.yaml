@@ -43,7 +43,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: prometheus-local-pvc
-  namespace: monitoring
+  namespace: observability
   labels:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/component: server

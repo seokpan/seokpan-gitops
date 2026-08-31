@@ -21,7 +21,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mariadb-exporter
-  namespace: monitoring
+  namespace: observability
   labels:
     app.kubernetes.io/name: mariadb-exporter
 spec:
@@ -34,7 +34,7 @@ apiVersion: v1
 kind: Endpoints
 metadata:
   name: mariadb-exporter
-  namespace: monitoring
+  namespace: observability
 subsets:
   - addresses:
       - ip: 192.168.54.0   # [TODO] MariaDB Primary 실제 IP로 교체, 김상희 님 확인 필요
@@ -47,7 +47,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: mariadb-exporter
-  namespace: monitoring
+  namespace: observability
   labels:
     release: kube-prometheus-stack
 spec:
@@ -67,7 +67,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: lb01-haproxy-exporter
-  namespace: monitoring
+  namespace: observability
   labels:
     app.kubernetes.io/name: lb01-haproxy-exporter
 spec:
@@ -80,7 +80,7 @@ apiVersion: v1
 kind: Endpoints
 metadata:
   name: lb01-haproxy-exporter
-  namespace: monitoring
+  namespace: observability
 subsets:
   - addresses:
       - ip: 192.168.53.0   # [TODO] LB-01 실제 IP로 교체, 이유빈 님 확인 필요
@@ -93,7 +93,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: lb01-haproxy-exporter
-  namespace: monitoring
+  namespace: observability
   labels:
     release: kube-prometheus-stack
 spec:
