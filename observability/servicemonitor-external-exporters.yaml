@@ -6,9 +6,10 @@
 # selector 없는 Service + 수동 Endpoints 조합으로 "가상 Service"를 만들고,
 # 그 Service를 ServiceMonitor가 스크랩하도록 구성합니다.
 #
-# 아래는 MariaDB(mysqld_exporter)와 LB-01(haproxy_exporter) 2개만 작성했고,
-# 나머지 대상(MaxScale exporter, VRouter/NFS/Ansible Controller node_exporter 등)은
-# 동일 패턴을 복제해서 추가하면 됩니다. (필요하면 이어서 작성 가능)
+# [현황, 2026-08-31] MariaDB(mysqld_exporter), LB-01(haproxy_exporter),
+# VRouter 1~4·MaxScale-01·NFS·Ansible Controller(공통 node_exporter) 총 4개 그룹 작성 완료.
+# 남은 대상은 loadgen 하나뿐이며, IP 확정되는 대로 node-exporter-external의
+# EndpointSlice에 주소만 추가하면 된다(신규 Service/ServiceMonitor 불필요).
 #
 # [해결됨, 2026-08-31]
 #  - namespace: monitoring → observability (platform/namespaces-rbac 공식 5종 Namespace 기준)
@@ -66,12 +67,80 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
   selector:
     matchLabels:
       app.kubernetes.io/name: mariadb-exporter
+  endpoints:
+    - port: metrics
+      interval: 15s
+---
+# ── 외부 VM 공통 node_exporter (VRouter 1~4, MaxScale-01, NFS, Ansible Controller) ──
+# [신규, 2026-08-31] 확정된 IP인데 Monitor 자체가 없던 대상 6개를 추가.
+# MariaDB/LB-01은 각자 전용 Exporter(mysqld_exporter/haproxy_exporter)가 있어 위에서
+# 별도로 다루고, 여기는 순수 node_exporter(9100)만 공통으로 붙는 대상을 한 Job으로 묶음.
+#
+# [제외] loadgen은 IP가 아직 미확정이라 이번에도 포함하지 않음. IP 확정되면
+# endpoints에 주소 한 줄만 추가하면 됨(Service/ServiceMonitor 재작성 불필요).
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter-external
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: node-exporter-external
+spec:
+  ports:
+    - name: metrics
+      port: 9100
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: node-exporter-external
+  namespace: observability
+  labels:
+    kubernetes.io/service-name: node-exporter-external
+addressType: IPv4
+ports:
+  - name: metrics
+    port: 9100
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "192.168.51.10"   # VRouter-01
+  - addresses:
+      - "192.168.52.10"   # VRouter-02
+  - addresses:
+      - "192.168.53.10"   # VRouter-03
+  - addresses:
+      - "192.168.54.10"   # VRouter-04
+  - addresses:
+      - "192.168.53.40"   # MaxScale-01 (node_exporter만. MaxScale REST API 기반 자체 Metric은 별도 확정 필요)
+  - addresses:
+      - "192.168.54.50"   # NFS
+  - addresses:
+      - "192.168.54.70"   # Ansible Controller
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-exporter-external
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  serviceDiscoveryRole: EndpointSlice
+  namespaceSelector:
+    matchNames:
+      - observability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-exporter-external
   endpoints:
     - port: metrics
       interval: 15s
@@ -114,6 +183,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
@@ -123,3 +193,56 @@ spec:
   endpoints:
     - port: metrics
       interval: 15s
+---
+# ── Harbor 자체 metrics ──────────────────────────────────
+# [신규, 2026-08-31] harbor role defaults의 harbor_metric_port(9090)를 스크랩 대상으로 추가.
+# node_exporter가 아니라 Harbor 자체 /metrics 엔드포인트(Prometheus 포맷 직접 노출)라
+# 별도 Job으로 분리. Path가 harbor.yml의 metric.path 설정과 다르면 아래 path 조정 필요.
+apiVersion: v1
+kind: Service
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: harbor-metrics
+spec:
+  ports:
+    - name: metrics
+      port: 9090
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    kubernetes.io/service-name: harbor-metrics
+addressType: IPv4
+ports:
+  - name: metrics
+    port: 9090
+    protocol: TCP
+endpoints:
+  - addresses:
+      - "192.168.53.61"   # Harbor
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: harbor-metrics
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  serviceDiscoveryRole: EndpointSlice
+  namespaceSelector:
+    matchNames:
+      - observability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: harbor-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s   # Harbor 자체 API 부하 고려해 node_exporter류(15s)보다 여유있게

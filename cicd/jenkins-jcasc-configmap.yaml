@@ -1,5 +1,10 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-08-28
+# 작성 날짜: 2026-08-28 (2026-08-31 정합화 개정: Namespace jenkins→cicd)
+#
+# [해결됨, 2026-08-31] JCasC 내부 문자열(kubernetes cloud namespace, jenkinsUrl,
+# Agent Template namespace)에 남아있던 구버전 Namespace "jenkins"를 "cicd"로 수정.
+# metadata.namespace는 PR #11에서 이미 반영됐으나, ConfigMap data 안의 문자열 값은
+# kubectl dry-run으로 검증되지 않는 영역이라 별도로 누락돼 있었음(팀원 피드백으로 확인).
 #
 # [범위 주의] 이 파일은 JCasC 구조 초안입니다. 아래 항목은 이번 단계(Jenkins manifest 초안)에
 # 포함하지 않고 TODO로만 남겨둡니다.
@@ -26,7 +31,6 @@ data:
     jenkins:
       systemMessage: "seokpan CI/CD - managed by JCasC, do not edit via UI"
       numExecutors: 0   # Controller 자체에서는 빌드 실행 안 함, 전부 Kubernetes 동적 Agent로 위임
-
       # [TODO - 보안 결정 필요] 아래는 최소 동작 예시. 실 서비스 전 팀 확정 필요.
       securityRealm:
         local:
@@ -37,17 +41,16 @@ data:
       authorizationStrategy:
         loggedInUsersCanDoAnything:
           allowAnonymousRead: false
-
       clouds:
         - kubernetes:
             name: "seokpan-k8s"
-            namespace: "jenkins"
-            jenkinsUrl: "http://jenkins-controller.jenkins.svc.cluster.local:8080"
+            namespace: "cicd"
+            jenkinsUrl: "http://jenkins-controller.cicd.svc.cluster.local:8080"
             containerCapStr: "10"
             templates:
               - name: "buildkit-rootless"
                 label: "buildkit-rootless"
-                namespace: "jenkins"
+                namespace: "cicd"
                 containers:
                   - name: "buildkit"
                     image: "moby/buildkit:rootless"
@@ -63,7 +66,6 @@ data:
                   - secretVolume:
                       secretName: "harbor-robot-dockerconfig"
                       mountPath: "/home/user/.docker"
-
     credentials:
       system:
         domainCredentials:
@@ -78,4 +80,3 @@ data:
                   username: "${HARBOR_ROBOT_USERNAME}"
                   password: "${HARBOR_ROBOT_PASSWORD}"
                   description: "Harbor push/pull robot account (seokpan project) - Ansible이 주입한 Secret 참조"
-
