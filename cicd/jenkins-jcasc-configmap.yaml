@@ -51,14 +51,22 @@ data:
               - name: "buildkit-rootless"
                 label: "buildkit-rootless"
                 namespace: "cicd"
+		priorityClassName: "cicd-low-priority"
                 containers:
                   - name: "buildkit"
                     image: "moby/buildkit:rootless"
                     runAsUser: 1000
+                    resourceRequestCpu: "500m"
+                    resourceRequestMemory: "1Gi"
+                    resourceLimitCpu: "2000m"
+                    resourceLimitMemory: "4Gi"
                     envVars:
                       - envVar:
                           key: "DOCKER_CONFIG"
                           value: "/home/user/.docker"
+                      - envVar:
+                          key: "BUILDKITD_CONFIG"
+                          value: "/home/user/.config/buildkit/buildkitd.toml"
                     workingDir: "/home/workspace"
                 volumes:
                   # [연동] Harbor 인증 정보 (~/.docker/config.json)를 담은 Secret.
@@ -66,6 +74,12 @@ data:
                   - secretVolume:
                       secretName: "harbor-robot-dockerconfig"
                       mountPath: "/home/user/.docker"
+                  - secretVolume:
+                      secretName: "harbor-ca-cert"
+                      mountPath: "/etc/buildkit/certs/harbor.seokpan.soldesk.store"
+                  - configMapVolume:
+                      configMapName: "buildkit-config"
+                      mountPath: "/home/user/.config/buildkit"
     credentials:
       system:
         domainCredentials:

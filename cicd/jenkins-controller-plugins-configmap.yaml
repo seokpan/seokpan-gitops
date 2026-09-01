@@ -1,0 +1,14 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-01
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-controller-plugins
+  namespace: cicd
+data:
+  plugins.txt: |
+    kubernetes
+    workflow-aggregator
+    configuration-as-code
+    git
+    credentials-binding
