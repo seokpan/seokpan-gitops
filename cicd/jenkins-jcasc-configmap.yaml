@@ -51,7 +51,7 @@ data:
               - name: "buildkit-rootless"
                 label: "buildkit-rootless"
                 namespace: "cicd"
-		priorityClassName: "cicd-low-priority"
+                priorityClassName: "cicd-low-priority"
                 containers:
                   - name: "buildkit"
                     image: "moby/buildkit:rootless"
