@@ -6,8 +6,12 @@
 
 ```text
 seokpan-gitops/
+├── argocd/
+│   └── applications/
 ├── apps/
 ├── platform/
+├── cicd/
+├── observability/
 ├── .gitignore
 └── README.md
 ```
@@ -16,36 +20,31 @@ seokpan-gitops/
 
 이 Repository는 Kubernetes Cluster 위에서 Argo CD가 지속적으로 동기화할 Desired State를 관리합니다.
 
+### argocd/applications
+
+Argo CD Root Application(App-of-Apps)이 관리할 Child `Application` CR 선언 전용 경로입니다.
+
+각 선언은 실제 Workload Manifest를 직접 담지 않고 `apps/`, `platform/`, `cicd/`, `observability/` 아래의 Desired State 경로를 Argo CD에 연결합니다.
+
 ### apps
 
-실제 서비스 애플리케이션 Runtime에 해당하는 Kubernetes 리소스를 관리합니다.
+Frontend와 Backend 등 실제 서비스 Application Runtime에 해당하는 Kubernetes 리소스를 관리합니다.
 
-주요 대상은 다음과 같습니다.
-
-* Frontend
-* Backend
-* Redis
-* 애플리케이션별 Service
-* 애플리케이션별 HPA 및 NetworkPolicy
-
-세부 디렉터리 구조와 Manifest 구성 방식은 실제 배포 구현 착수 시 확정합니다.
+애플리케이션별 Service, HPA, NetworkPolicy 등 Application에 직접 종속되는 Desired State도 이 영역에서 관리합니다.
 
 ### platform
 
-Kubernetes 위에서 동작하는 공통 플랫폼 구성요소의 Desired State를 관리합니다.
+Kubernetes 위에서 동작하는 공통 Runtime Platform 구성요소의 Desired State를 관리합니다.
 
-주요 대상은 다음과 같습니다.
+주요 대상은 Gateway, Redis, Storage Client, Namespace/RBAC 등입니다.
 
-* Gateway API 관련 구성
-* Metrics Server
-* Prometheus
-* Grafana
-* Loki
-* Grafana Alloy
-* Alertmanager
-* 공통 플랫폼 NetworkPolicy 및 관련 Kubernetes 리소스
+### cicd
 
-세부 디렉터리 구조는 각 플랫폼 구성요소 구현 착수 시 확정합니다.
+Jenkins 등 CI/CD Runtime Desired State를 관리합니다.
+
+### observability
+
+Prometheus, Grafana, Loki, Grafana Alloy, Alertmanager 등 관측 Runtime Desired State를 관리합니다.
 
 ## Repository Boundary
 
