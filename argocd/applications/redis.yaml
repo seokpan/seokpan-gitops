@@ -1,13 +1,13 @@
-# Owner: 김상희
-# Scope: Data, Storage & Recovery
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
 # Project: 石나가는 판단
-# Purpose: NFS Subdir External Provisioner / RBAC / StorageClass GitOps Desired State
-# 관련: seokpan-infra#44, seokpan-gitops#10
+# Purpose: Redis Runtime GitOps Child Application
+# 관련: seokpan-gitops#7, seokpan-gitops#15
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: storage-nfs
+  name: redis
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -16,10 +16,10 @@ spec:
   source:
     repoURL: https://github.com/seokpan/seokpan-gitops.git
     targetRevision: main
-    path: platform/storage-nfs
+    path: platform/redis
   destination:
     server: https://kubernetes.default.svc
-    namespace: storage-infra
+    namespace: platform
   syncPolicy:
     automated:
       prune: true
