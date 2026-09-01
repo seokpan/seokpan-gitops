@@ -67,6 +67,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
@@ -133,6 +134,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
@@ -181,6 +183,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
@@ -232,6 +235,7 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
+  serviceDiscoveryRole: EndpointSlice
   namespaceSelector:
     matchNames:
       - observability
