@@ -1,0 +1,39 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-01
+# observability/values-kube-prometheus-stack.yaml
+
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-storage   
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+    retention: 7d
+    # nodeAffinity로 worker-01 고정 (prometheus-local-pv.yaml의 PV와 짝을 맞춰야 함)
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: ["worker-01"]
+
+grafana:
+  sidecar:
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+alertmanager:
+  alertmanagerSpec:
+    storage: {}   # README: 기본 PVC 없음

@@ -1,0 +1,27 @@
+# Owner: 최유준
+# Scope: Delivery & Observability
+# Project: 石나가는 판단
+# Purpose: Jenkins Controller/Agent(BuildKit Rootless)/JCasC GitOps Desired State
+# 관련: (Jenkins 매니페스트 갭 5건 Issue 번호 기입)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jenkins
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seokpan/seokpan-gitops.git
+    targetRevision: main
+    path: cicd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cicd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

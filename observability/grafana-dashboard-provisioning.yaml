@@ -26,13 +26,13 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        url: http://prometheus-operated.observability.svc.cluster.local:9090
         isDefault: true
         editable: false   # UI 직접 수정 방지 — Provisioning 파일만 진실 소스
       - name: Loki
         type: loki
         access: proxy
-        url: http://loki.monitoring.svc.cluster.local:3100
+        url: http://loki.observability.svc.cluster.local:3100
         editable: false
 ---
 # Dashboard ConfigMap 뼈대 예시 (M-01: 동시성 정합성 대시보드, 내용은 추후 채움)
