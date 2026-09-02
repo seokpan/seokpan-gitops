@@ -56,7 +56,7 @@ data:
                     priorityClassName: cicd-low-priority
                 containers:
                   - name: "buildkit"
-                    image: "moby/buildkit:rootless"
+                    image: "moby/buildkit@sha256:504731e577c20559c00f968f33219f30115e70be29ab96728d1d06e963fc494b"
                     runAsUser: 1000
                     resourceRequestCpu: "500m"
                     resourceRequestMemory: "1Gi"
