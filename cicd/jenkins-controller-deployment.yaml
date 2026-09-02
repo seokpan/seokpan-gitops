@@ -42,6 +42,21 @@ spec:
       serviceAccountName: jenkins-controller
       securityContext:
         fsGroup: 1000
+      initContainers:
+        - name: install-plugins
+          image: jenkins/jenkins:2.568.2-lts-jdk21@sha256:25a061bfd6a7f954b8c2e0b6d5ad07c33e8e29364f50484ecdc4d4d7bf4800d3
+          command:
+            - jenkins-plugin-cli
+            - "--plugin-file"
+            - /var/jenkins_plugins/plugins.txt
+            - "--plugin-download-directory"
+            - /var/jenkins_home/plugins
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+            - name: jenkins-plugins-def
+              mountPath: /var/jenkins_plugins
+              readOnly: true
       containers:
         - name: jenkins
           image: jenkins/jenkins:2.568.2-lts-jdk21@sha256:25a061bfd6a7f954b8c2e0b6d5ad07c33e8e29364f50484ecdc4d4d7bf4800d3
@@ -109,3 +124,6 @@ spec:
         - name: jenkins-casc
           configMap:
             name: jenkins-jcasc
+        - name: jenkins-plugins-def
+          configMap:
+            name: jenkins-controller-plugins

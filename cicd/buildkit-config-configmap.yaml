@@ -1,0 +1,11 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-01
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: buildkit-config
+  namespace: cicd
+data:
+  buildkitd.toml: |
+    [registry."harbor.seokpan.soldesk.store"]
+      ca=["/etc/buildkit/certs/ca.crt"]
