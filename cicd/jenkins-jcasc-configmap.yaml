@@ -74,12 +74,12 @@ data:
                   - secretVolume:
                       secretName: "harbor-robot-dockerconfig"
                       mountPath: "/home/user/.docker"
-                  - secretVolume:
-                      secretName: "harbor-ca-cert"
-                      mountPath: "/etc/buildkit/certs/harbor.seokpan.soldesk.store"
                   - configMapVolume:
                       configMapName: "buildkit-config"
                       mountPath: "/home/user/.config/buildkit"
+                  - configMapVolume:
+                      mountPath: "/etc/buildkit/certs"
+                      configMapName: "harbor-ca-cert"     
     credentials:
       system:
         domainCredentials:

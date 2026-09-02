@@ -8,4 +8,4 @@ metadata:
 data:
   buildkitd.toml: |
     [registry."harbor.seokpan.soldesk.store"]
-      ca=["/etc/buildkit/certs/harbor.seokpan.soldesk.store/ca.crt"]
+      ca=["/etc/buildkit/certs/ca.crt"]
