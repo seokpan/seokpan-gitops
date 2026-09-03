@@ -35,6 +35,9 @@
 # Loki←Grafana/Alloy) 발견 및 추가. 기존 파일은 Egress만 정의되어 있어 Default Deny 전환 시
 # observability 스택 내부 통신이 전부 막히는 상태였음.
 # [해결됨, 2026-09-03] Alloy·Alertmanager egress에 DNS(53) 규칙 누락 발견 및 추가.
+# [해결됨, 2026-09-03] CoreDNS namespace 확인 완료 — kube-system, kube-dns Service(10.96.0.10:53).
+# 기존 DNS egress(정책 1, 4)의 namespaceSelector: {} 를 kube-system으로 좁히고,
+# 신규 추가된 Alloy(정책 5)·Alertmanager(정책 6) DNS egress도 동일하게 kube-system으로 통일.
 
 
 # 1) Prometheus → in-cluster 대상 (kube-state-metrics, FastAPI/Redis, Alertmanager)
@@ -68,7 +71,7 @@ spec:
         - protocol: TCP
           port: 9093
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector: kube-system 
       ports:
         - protocol: UDP
           port: 53
@@ -171,7 +174,7 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector: kube-system 
       ports:
         - protocol: UDP
           port: 53
@@ -201,7 +204,7 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector: kube-system 
       ports:
         - protocol: UDP
           port: 53
@@ -230,7 +233,7 @@ spec:
         - protocol: TCP
           port: 465
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector: kube-system
       ports:
         - protocol: UDP
           port: 53
