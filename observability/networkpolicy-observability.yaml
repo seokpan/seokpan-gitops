@@ -71,7 +71,10 @@ spec:
         - protocol: TCP
           port: 9093
     - to:
-        - namespaceSelector: kube-system 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+              
       ports:
         - protocol: UDP
           port: 53
@@ -174,7 +177,9 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector: kube-system 
+        - namespaceSelector:  
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53
@@ -204,7 +209,9 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector: kube-system 
+        - namespaceSelector: 
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53
@@ -233,7 +240,9 @@ spec:
         - protocol: TCP
           port: 465
     - to:
-        - namespaceSelector: kube-system
+        - namespaceSelector: 
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53
