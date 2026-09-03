@@ -62,7 +62,8 @@ data:
                     resourceRequestMemory: "1Gi"
                     resourceLimitCpu: "2000m"
                     resourceLimitMemory: "4Gi"
-                    args: "--config=/home/user/.config/buildkit/buildkitd.toml"
+                    command: "cat"
+                    ttyEnabled: true
                     envVars:
                       - envVar:
                           key: "DOCKER_CONFIG"
