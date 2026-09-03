@@ -7,8 +7,8 @@ metadata:
   namespace: cicd
 data:
   plugins.txt: |
-    kubernetes
-    workflow-aggregator
-    configuration-as-code
-    git
-    credentials-binding
+    kubernetes:4547.v52f3080db_8cd
+    workflow-aggregator:608.v67378e9d3db_1
+    configuration-as-code:2121.v86fe99d4b_b_a_b_
+    git:5.10.1
+    credentials-binding:728.v902a_273b_8947
