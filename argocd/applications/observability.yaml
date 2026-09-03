@@ -1,0 +1,36 @@
+# Owner: 최유준
+# Scope: Delivery & Observability
+# Project: 石나가는 판단
+# Purpose: kube-prometheus-stack(Prometheus/Grafana/Alertmanager) + 부속 Manifest GitOps Desired State
+# 관련: (Observability 연동 확인 Issue 번호 기입)
+# [주의] Root Sync 전 선행조건 3가지(observability/README.md 참고) 확인 후 Merge할 것
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: "88.5.4"
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/observability/values-kube-prometheus-stack.yaml
+    - repoURL: https://github.com/seokpan/seokpan-gitops.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/seokpan/seokpan-gitops.git
+      targetRevision: main
+      path: observability
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

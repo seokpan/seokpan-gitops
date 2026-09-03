@@ -62,13 +62,15 @@ data:
                     resourceRequestMemory: "1Gi"
                     resourceLimitCpu: "2000m"
                     resourceLimitMemory: "4Gi"
+                    command: "cat"
+                    ttyEnabled: true
                     envVars:
                       - envVar:
                           key: "DOCKER_CONFIG"
                           value: "/home/user/.docker"
                       - envVar:
-                          key: "BUILDKITD_CONFIG"
-                          value: "/home/user/.config/buildkit/buildkitd.toml"
+                          key: "SSL_CERT_FILE"
+                          value: "/etc/buildkit/certs/ca.crt"
                     workingDir: "/home/workspace"
                 volumes:
                   # [연동] Harbor 인증 정보 (~/.docker/config.json)를 담은 Secret.

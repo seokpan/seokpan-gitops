@@ -31,6 +31,13 @@
 # 최유준 확인 결과 기존 값이 맞고 해당 다이어그램 쪽 오탈자로 확정됨(다이어그램 수정 필요 - 별도 전달).
 # MariaDB-01(Primary, Server-02) 192.168.52.40 / MariaDB-02(Replica, Server-01) 192.168.51.40
 # Harbor 192.168.53.61 / NFS 192.168.54.50 / Ansible Controller 192.168.54.70
+# [해결됨, 2026-09-03] Ingress 규칙 전체 누락(Prometheus←Grafana, Alertmanager←Prometheus,
+# Loki←Grafana/Alloy) 발견 및 추가. 기존 파일은 Egress만 정의되어 있어 Default Deny 전환 시
+# observability 스택 내부 통신이 전부 막히는 상태였음.
+# [해결됨, 2026-09-03] Alloy·Alertmanager egress에 DNS(53) 규칙 누락 발견 및 추가.
+# [해결됨, 2026-09-03] CoreDNS namespace 확인 완료 — kube-system, kube-dns Service(10.96.0.10:53).
+# 기존 DNS egress(정책 1, 4)의 namespaceSelector: {} 를 kube-system으로 좁히고,
+# 신규 추가된 Alloy(정책 5)·Alertmanager(정책 6) DNS egress도 동일하게 kube-system으로 통일.
 
 
 # 1) Prometheus → in-cluster 대상 (kube-state-metrics, FastAPI/Redis, Alertmanager)
@@ -64,7 +71,10 @@ spec:
         - protocol: TCP
           port: 9093
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+              
       ports:
         - protocol: UDP
           port: 53
@@ -167,7 +177,9 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:  
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53
@@ -196,6 +208,15 @@ spec:
       ports:
         - protocol: TCP
           port: 3100
+    - to:
+        - namespaceSelector: 
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
 ---
 # 6) Alertmanager → SMTP (클러스터 밖 이메일 발송)
 apiVersion: networking.k8s.io/v1
@@ -218,3 +239,86 @@ spec:
           port: 587
         - protocol: TCP
           port: 465
+    - to:
+        - namespaceSelector: 
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# 7) [신규 추가, 2026-09-03] Prometheus ← Grafana Ingress
+# Grafana의 Egress(정책 4, Prometheus:9090)와 짝을 이루는 Ingress 허용 규칙.
+# Ingress 없이는 Default Deny 전환 시 Grafana→Prometheus 데이터 조회가 막힘.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-ingress-grafana
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+      ports:
+        - protocol: TCP
+          port: 9090
+---
+# 8) [신규 추가, 2026-09-03] Alertmanager ← Prometheus Ingress
+# Prometheus의 Egress(정책 1, Alertmanager:9093)와 짝을 이루는 Ingress 허용 규칙.
+# Ingress 없이는 Prometheus가 평가한 Alert가 Alertmanager로 전달되지 못함(G-07 Gate 직결).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-alertmanager-ingress-prometheus
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9093
+---
+# 9) [신규 추가, 2026-09-03] Loki ← Grafana / Alloy Ingress
+# Grafana의 Egress(정책 4, Loki:3100)와 Alloy의 Egress(정책 5, Loki:3100) 양쪽과 짝을 이루는 Ingress.
+# Ingress 없이는 Grafana의 Log 조회와 Alloy의 Log 수집·전달이 모두 막힘.
+# [참고] 외부 VM(systemd Alloy)의 수집 경로는 별도 NodePort Ingress이며 이 정책 범위 밖(정책 5 주석 참고).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-loki-ingress-grafana-alloy
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alloy
+      ports:
+        - protocol: TCP
+          port: 3100
