@@ -37,3 +37,7 @@ grafana:
 alertmanager:
   alertmanagerSpec:
     storage: {}   # README: 기본 PVC 없음
+
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
