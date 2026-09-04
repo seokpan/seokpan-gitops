@@ -1,0 +1,73 @@
+# Owner: 정태훈
+# Scope: Application Runtime / GitOps
+# Related: seokpan-gitops#29
+# Runtime activation is intentionally blocked until a real image digest and provider wiring are ready.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: application
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+    spec:
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: harbor.seokpan.soldesk.store/seokpan/backend:git-pending
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: backend-config
+          env:
+            - name: SEOKPAN_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
