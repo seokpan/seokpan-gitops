@@ -12,6 +12,10 @@ prometheus:
           resources:
             requests:
               storage: 20Gi
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              app.kubernetes.io/component: server
     retention: 7d
     # nodeAffinity로 worker-01 고정 (prometheus-local-pv.yaml의 PV와 짝을 맞춰야 함)
     affinity:
@@ -38,6 +42,3 @@ alertmanager:
   alertmanagerSpec:
     storage: {}   # README: 기본 PVC 없음
 
-prometheusOperator:
-  admissionWebhooks:
-    enabled: false
