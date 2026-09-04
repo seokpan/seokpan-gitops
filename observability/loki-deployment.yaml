@@ -54,7 +54,7 @@ spec:
             name: loki-config
         - name: loki-storage
           persistentVolumeClaim:
-            claimName: loki-storage
+            claimName: loki-local-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -70,15 +70,3 @@ spec:
     - name: http
       port: 3100
       targetPort: http
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-storage
-  namespace: observability
-spec:
-  accessModes: ["ReadWriteOnce"]
-  storageClassName: local-storage   
-  resources:
-    requests:
-      storage: 10Gi   # README: 10GiB 보존
