@@ -76,6 +76,9 @@ data:
                       - envVar:
                           key: "SSL_CERT_FILE"
                           value: "/etc/buildkit/certs/ca.crt"
+                      - envVar:
+                          key: "BUILDKITD_FLAGS"
+                          value: "--oci-worker-no-process-sandbox"
                     workingDir: "/home/workspace"
                 volumes:
                   # [연동] Harbor 인증 정보 (~/.docker/config.json)를 담은 Secret.
