@@ -36,23 +36,4 @@ spec:
               operator: In
               values:
                 - worker-01
----
-# kube-prometheus-stack Helm Chart가 기대하는 PVC 이름/Selector 규칙은 배포 시 재확인 필요.
-# 여기서는 수동 Bind를 명확히 하기 위해 volumeName으로 위 PV를 직접 지정합니다.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-local-pvc
-  namespace: observability
-  labels:
-    app.kubernetes.io/name: prometheus
-    app.kubernetes.io/component: server
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-storage
-  volumeName: prometheus-local-pv
-  resources:
-    requests:
-      storage: 20Gi
 
