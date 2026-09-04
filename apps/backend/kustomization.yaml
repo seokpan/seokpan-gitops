@@ -1,0 +1,16 @@
+# Owner: 정태훈
+# Scope: Application Runtime / GitOps
+# Related: seokpan-gitops#29
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: application
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: harbor.seokpan.soldesk.store/seokpan/backend
+    newName: harbor.seokpan.soldesk.store/seokpan/backend
+    newTag: git-pending
