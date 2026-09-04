@@ -3,29 +3,39 @@
 # Project: 石나가는 판단
 # Purpose: MVP 공용 작업 영역 Namespace 정의
 # Created: 2026-08-27 17:03:10 KST
-# Updated: 2026-08-28 KST
+# Updated: 2026-09-04 KST
 
 apiVersion: v1
 kind: Namespace
 metadata:
   name: application
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: platform
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: observability
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: cicd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: storage-infra
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
