@@ -1,0 +1,23 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: Namespace 및 팀원 역할별 RBAC GitOps Child Application
+# 관련: seokpan-gitops#3, seokpan-gitops#15, seokpan-gitops#25
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: namespaces-rbac
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seokpan/seokpan-gitops.git
+    targetRevision: main
+    path: platform/namespaces-rbac
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
