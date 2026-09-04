@@ -1,0 +1,15 @@
+# Owner: 정태훈
+# Scope: Application Runtime / GitOps
+# Related: seokpan-gitops#29
+# Database URLs are intentionally excluded until seokpan-infra#102 fixes the TLS/CA contract.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: application
+data:
+  SEOKPAN_ENVIRONMENT: "production"
+  SEOKPAN_LOG_LEVEL: "INFO"
+  SEOKPAN_ALLOWED_ORIGINS: "https://game.seokpan.soldesk.store"
+  SEOKPAN_REDIS_URL: "redis://redis.platform.svc.cluster.local:6379/0"
