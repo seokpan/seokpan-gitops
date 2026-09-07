@@ -1,12 +1,13 @@
 # Owner: 정태훈
 # Scope: Application Runtime / GitOps
-# Related: seokpan-gitops#29
+# Related: seokpan-gitops#29, seokpan-gitops#35, seokpan-app#50
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: application
 resources:
   - configmap.yaml
+  - database-ca-configmap.yaml
   - deployment.yaml
   - service.yaml
 
