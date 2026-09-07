@@ -1,0 +1,43 @@
+# Owner: 정태훈
+# Scope: Application Runtime / GitOps
+# Related: seokpan-gitops#35, seokpan-app#50
+# Public Root CA certificate only. Never add the CA private key or service private keys here.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seokpan-internal-ca
+  namespace: application
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    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
+    -----END CERTIFICATE-----
