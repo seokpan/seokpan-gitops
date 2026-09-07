@@ -1,7 +1,7 @@
 # Owner: 정태훈
 # Scope: Application Runtime / GitOps
-# Related: seokpan-gitops#29
-# Database URLs are intentionally excluded until seokpan-infra#102 fixes the TLS/CA contract.
+# Related: seokpan-gitops#29, seokpan-gitops#35, seokpan-app#50
+# MaxScale TLS/CA contract is fixed; database URL Secrets remain deferred until Provider activation.
 
 apiVersion: v1
 kind: ConfigMap
@@ -13,3 +13,4 @@ data:
   SEOKPAN_LOG_LEVEL: "INFO"
   SEOKPAN_ALLOWED_ORIGINS: "https://game.seokpan.soldesk.store"
   SEOKPAN_REDIS_URL: "redis://redis.platform.svc.cluster.local:6379/0"
+  SEOKPAN_DATABASE_CA_FILE: "/etc/seokpan/pki/ca.crt"

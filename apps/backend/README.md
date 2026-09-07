@@ -26,11 +26,32 @@
 
 ## DB / Migration 경계
 
-일반 Backend Runtime은 이후 확정되는 `SEOKPAN_IDENTITY_DATABASE_URL`, `SEOKPAN_GAME_DATABASE_URL`만 사용합니다.
+MaxScale TLS Listener와 App Client 계약은 `seokpan-infra#102`, `seokpan-app#50` 기준으로 확정되어 있습니다.
 
-`seokpan-infra#102`의 MaxScale TLS/CA 기준이 확정되기 전까지 실제 DB URL Secret과 TLS Option을 이 디렉터리에 고정하지 않습니다.
+Backend가 사용하는 공식 DB 주소는 `db.seokpan.soldesk.store:3306`이며, 실제 Runtime DB URL은 이후 확정되는 `SEOKPAN_IDENTITY_DATABASE_URL`, `SEOKPAN_GAME_DATABASE_URL` Secret 참조로 전달합니다.
+
+공개 Root CA 전달 계약:
+
+```text
+ConfigMap: seokpan-internal-ca
+Key:       ca.crt
+Mount:     /etc/seokpan/pki/ca.crt
+Env:       SEOKPAN_DATABASE_CA_FILE=/etc/seokpan/pki/ca.crt
+```
+
+`database-ca-configmap.yaml`에는 Ansible Controller의 공식 Root CA `/etc/pki/seokpan-ca/ca.crt`에서 가져온 공개 인증서만 포함합니다. GitOps 반영 전 `seokpan-app#50`에 기록된 X.509 SHA-256 Fingerprint와 일치함을 확인했습니다.
+
+확인된 Fingerprint:
+
+```text
+A3:3B:2F:BB:16:2B:41:5C:C7:91:7E:9B:F6:4A:6C:00:8E:CD:47:16:97:C4:F0:6D:0B:CF:DC:BA:E2:34:5B:96
+```
+
+CA Private Key와 서비스 Private Key는 이 Repository에 포함하지 않습니다.
 
 `SEOKPAN_MIGRATION_DATABASE_URL`과 `db_admin` Credential은 일반 Backend Deployment에 주입하지 않습니다.
+
+실제 DB Secret Resource 이름과 승인된 One-shot Migration Workload 이름은 Provider 활성화 단계에서 확정합니다.
 
 ## Image 갱신 계약
 
@@ -46,18 +67,24 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 
 1. Backend Container Image 존재
 2. Harbor Push 및 실제 Digest 확인
-3. MariaDB·Redis Provider 조립 완료
-4. 필요한 Runtime Secret 확정
-5. Provider 상태를 확인하는 readiness 기준 확인
-6. 초기 `replicas: 1` Smoke Test 준비
-7. Argo CD Child Application 연결 검토
+3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 완료
+4. Infra에서 인계한 Root CA와 GitOps `ca.crt` Fingerprint 일치 확인 — 완료
+5. MariaDB·Redis Provider 조립 완료
+6. 필요한 Runtime Secret 확정
+7. 승인된 One-shot Migration 실행 준비
+8. Provider 상태를 확인하는 readiness 기준 확인
+9. 초기 `replicas: 1` Smoke Test 준비
+10. Argo CD Child Application 연결 검토
 
 1 Replica 통합 검증 전에는 2 Replica 이상으로 확장하지 않습니다.
 
 ## 후속 연결
 
+- `seokpan-gitops#35` — Backend MaxScale TLS 공개 CA 주입 구조
+- `seokpan-app#50` — Backend/Alembic MaxScale TLS Client
 - `seokpan-gitops#7` — Redis 실제 Backend 연결
-- `seokpan-infra#102` — MaxScale TLS/CA
 - `seokpan-app#22` — Alembic Provider Gate
+- `seokpan-infra#102` — MaxScale TLS Listener 완료
+- `seokpan-infra#138` — TLS SAN 변경 감지 자동화 완료
 - `seokpan-gitops#27`, `seokpan-app#40` — Jenkins → Harbor → GitOps PR
-- `seokpan-gitops#29` — 현재 작업
+- `seokpan-gitops#29` — Backend/Frontend Runtime Desired State 기반
