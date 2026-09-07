@@ -1,6 +1,6 @@
 # Owner: 정태훈
 # Scope: Application Runtime / GitOps
-# Related: seokpan-gitops#29
+# Related: seokpan-gitops#29, seokpan-gitops#35, seokpan-app#50
 # Runtime activation is intentionally blocked until a real image digest and provider wiring are ready.
 
 apiVersion: apps/v1
@@ -68,6 +68,16 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: database-ca
+              mountPath: /etc/seokpan/pki/ca.crt
+              subPath: ca.crt
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: database-ca
+          configMap:
+            name: seokpan-internal-ca
+            items:
+              - key: ca.crt
+                path: ca.crt
