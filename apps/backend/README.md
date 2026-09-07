@@ -39,7 +39,15 @@ Mount:     /etc/seokpan/pki/ca.crt
 Env:       SEOKPAN_DATABASE_CA_FILE=/etc/seokpan/pki/ca.crt
 ```
 
-현재 `deployment.yaml`에는 위 ConfigMap 참조와 Mount 구조만 반영되어 있습니다. 실제 Root CA `ca.crt`는 Infra에서 인계한 X.509 SHA-256 Fingerprint와 대조한 뒤 별도 변경으로 GitOps에 반영합니다. 존재하지 않는 인증서 내용을 추정하거나 placeholder로 만들지 않습니다.
+`database-ca-configmap.yaml`에는 Ansible Controller의 공식 Root CA `/etc/pki/seokpan-ca/ca.crt`에서 가져온 공개 인증서만 포함합니다. GitOps 반영 전 `seokpan-app#50`에 기록된 X.509 SHA-256 Fingerprint와 일치함을 확인했습니다.
+
+확인된 Fingerprint:
+
+```text
+A3:3B:2F:BB:16:2B:41:5C:C7:91:7E:9B:F6:4A:6C:00:8E:CD:47:16:97:C4:F0:6D:0B:CF:DC:BA:E2:34:5B:96
+```
+
+CA Private Key와 서비스 Private Key는 이 Repository에 포함하지 않습니다.
 
 `SEOKPAN_MIGRATION_DATABASE_URL`과 `db_admin` Credential은 일반 Backend Deployment에 주입하지 않습니다.
 
@@ -60,7 +68,7 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 1. Backend Container Image 존재
 2. Harbor Push 및 실제 Digest 확인
 3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 완료
-4. Infra에서 인계한 Root CA와 GitOps `ca.crt` Fingerprint 일치 확인
+4. Infra에서 인계한 Root CA와 GitOps `ca.crt` Fingerprint 일치 확인 — 완료
 5. MariaDB·Redis Provider 조립 완료
 6. 필요한 Runtime Secret 확정
 7. 승인된 One-shot Migration 실행 준비
