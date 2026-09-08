@@ -80,6 +80,25 @@ data:
                           key: "BUILDKITD_FLAGS"
                           value: "--oci-worker-no-process-sandbox"
                     workingDir: "/home/workspace"
+                  - name: "python"
+                    # python 컨테이너 이미지는 backend/Dockerfile의 python/uv 버전과 동기화 필요
+                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:8baf6c1f6910e2909c9b1ac38b93f782ca79d5859daf1f35ae6a085e1dd37bad"
+                    runAsUser: 1000
+                    command: "cat"
+                    ttyEnabled: true
+                    resourceRequestCpu: "250m"
+                    resourceRequestMemory: "512Mi"
+                    resourceLimitCpu: "1000m"
+                    resourceLimitMemory: "2Gi"
+                  - name: "node"
+                    image: "node:24.19.0-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43"
+                    runAsUser: 1000
+                    command: "cat"
+                    ttyEnabled: true
+                    resourceRequestCpu: "250m"
+                    resourceRequestMemory: "512Mi"
+                    resourceLimitCpu: "1000m"
+                    resourceLimitMemory: "2Gi"
                 volumes:
                   # [연동] Harbor 인증 정보 (~/.docker/config.json)를 담은 Secret.
                   # Secret 리소스 자체는 Harbor Robot Account 발급 작업(다음 단계)에서 생성.
