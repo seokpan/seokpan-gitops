@@ -28,7 +28,7 @@
 
 MaxScale TLS Listener와 App Client 계약은 `seokpan-infra#102`, `seokpan-app#50` 기준으로 확정되어 있습니다.
 
-Backend가 사용하는 공식 DB 주소는 `db.seokpan.soldesk.store:3306`이며, 실제 Runtime DB URL은 이후 확정되는 `SEOKPAN_IDENTITY_DATABASE_URL`, `SEOKPAN_GAME_DATABASE_URL` Secret 참조로 전달합니다.
+Backend가 사용하는 공식 DB 주소는 `db.seokpan.soldesk.store:3306`이며, Runtime DB URL은 `backend-db-runtime` Secret의 `SEOKPAN_IDENTITY_DATABASE_URL`, `SEOKPAN_GAME_DATABASE_URL` Key를 통해 전달합니다.
 
 공개 Root CA 전달 계약:
 
@@ -79,7 +79,7 @@ Migration DB Secret:
 참조 계약만 관리합니다.
 
 실제 Kubernetes Secret 값의 공급은 Ansible + Vault 방식을 사용하며,
-필요한 Infra 자동화 변경은 `seokpan-infra`의 별도 Issue·Branch·PR에서 관리합니다.
+공급 자동화는 `seokpan-infra#150`에서 관리합니다.
 
 One-shot Migration Workload의 구체적인 Resource 이름과 Kubernetes 실행 구조는 후속 GitOps 작업에서 확정합니다.
 
@@ -100,7 +100,8 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 완료
 4. Infra에서 인계한 Root CA와 GitOps `ca.crt` Fingerprint 일치 확인 — 완료
 5. MariaDB·Redis Provider 조립 완료
-6. 필요한 Runtime Secret 확정
+6. Runtime DB Secret 계약 확정 — 완료
+   - 실제 Secret 값 공급: `seokpan-infra#150` 대기
 7. 승인된 One-shot Migration 실행 준비
 8. Provider 상태를 확인하는 readiness 기준 확인
 9. 초기 `replicas: 1` Smoke Test 준비
