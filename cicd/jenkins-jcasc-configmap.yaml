@@ -111,6 +111,8 @@ data:
                   - configMapVolume:
                       mountPath: "/etc/buildkit/certs"
                       configMapName: "harbor-ca-cert"     
+                imagePullSecrets:
+                  - name: "harbor-pull-secret"
     credentials:
       system:
         domainCredentials:
