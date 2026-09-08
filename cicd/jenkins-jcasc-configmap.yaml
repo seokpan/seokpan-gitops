@@ -81,7 +81,8 @@ data:
                           value: "--oci-worker-no-process-sandbox"
                     workingDir: "/home/workspace"
                   - name: "python"
-                    image: "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
+                    # python 컨테이너 이미지는 backend/Dockerfile의 python/uv 버전과 동기화 필요
+                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:8baf6c1f6910e2909c9b1ac38b93f782ca79d5859daf1f35ae6a085e1dd37bad"
                     runAsUser: 1000
                     command: "cat"
                     ttyEnabled: true
