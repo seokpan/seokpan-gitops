@@ -81,7 +81,9 @@ Migration DB Secret:
 실제 Kubernetes Secret 값의 공급은 Ansible + Vault 방식을 사용하며,
 공급 자동화는 `seokpan-infra#150`에서 관리합니다.
 
-One-shot Migration Workload의 구체적인 Resource 이름과 Kubernetes 실행 구조는 후속 GitOps 작업에서 확정합니다.
+승인형 One-shot Migration Job 실행 구조와 자산은 `seokpan-gitops#44`에서 관리합니다.
+실행 자산은 `apps/backend/migration/`에 보관하며 일반 `apps/backend/kustomization.yaml`에는 포함하지 않아 Argo CD Auto-Sync 대상과 분리합니다.
+실제 Migration 실행은 `seokpan-infra#150`의 Migration Secret 공급, 승인된 Backend Image Digest, DB 사전 Gate 완료 이후에만 수행합니다.
 
 ## Image 갱신 계약
 
@@ -102,7 +104,8 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 5. MariaDB·Redis Provider 조립 완료
 6. Runtime DB Secret 계약 확정 — 완료
    - 실제 Secret 값 공급: `seokpan-infra#150` 대기
-7. 승인된 One-shot Migration 실행 준비
+7. One-shot Migration Kubernetes 실행 구조 확정 — 완료
+   - 실제 실행: `seokpan-infra#150`, 승인된 Image Digest, DB 사전 Gate 대기
 8. Provider 상태를 확인하는 readiness 기준 확인
 9. 초기 `replicas: 1` Smoke Test 준비
 10. Argo CD Child Application 연결 검토
@@ -111,6 +114,7 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 
 ## 후속 연결
 
+- `seokpan-gitops#44` — 승인형 One-shot Migration Kubernetes Job 실행 구조
 - `seokpan-gitops#35` — Backend MaxScale TLS 공개 CA 주입 구조
 - `seokpan-app#50` — Backend/Alembic MaxScale TLS Client
 - `seokpan-gitops#7` — Redis 실제 Backend 연결
