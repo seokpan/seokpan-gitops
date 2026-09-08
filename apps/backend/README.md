@@ -51,7 +51,37 @@ CA Private Key와 서비스 Private Key는 이 Repository에 포함하지 않습
 
 `SEOKPAN_MIGRATION_DATABASE_URL`과 `db_admin` Credential은 일반 Backend Deployment에 주입하지 않습니다.
 
-실제 DB Secret Resource 이름과 승인된 One-shot Migration Workload 이름은 Provider 활성화 단계에서 확정합니다.
+DB Credential은 Runtime과 Migration의 권한 경계를 Kubernetes Secret에서도 분리합니다.
+
+Runtime DB Secret:
+
+    Secret: backend-db-runtime
+    Namespace: application
+    Consumer: Backend Deployment
+
+    Keys:
+    - SEOKPAN_IDENTITY_DATABASE_URL
+    - SEOKPAN_GAME_DATABASE_URL
+
+Migration DB Secret:
+
+    Secret: backend-db-migration
+    Namespace: application
+    Consumer: 승인된 One-shot Migration Workload만
+
+    Key:
+    - SEOKPAN_MIGRATION_DATABASE_URL
+
+세 DB URL은 모두 공식 Endpoint `db.seokpan.soldesk.store:3306`과 Database `stone_game`을 사용하며,
+각각 `identity_svc`, `game_svc`, `db_admin`의 기존 계정 경계를 유지합니다.
+
+실제 Password와 전체 DB URL은 Git에 저장하지 않습니다. GitOps는 Secret 이름·Key와 소비 Workload의
+참조 계약만 관리합니다.
+
+실제 Kubernetes Secret 값의 공급은 Ansible + Vault 방식을 사용하며,
+필요한 Infra 자동화 변경은 `seokpan-infra`의 별도 Issue·Branch·PR에서 관리합니다.
+
+One-shot Migration Workload의 구체적인 Resource 이름과 Kubernetes 실행 구조는 후속 GitOps 작업에서 확정합니다.
 
 ## Image 갱신 계약
 
