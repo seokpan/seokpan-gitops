@@ -17,6 +17,10 @@ IMAGE_RE = re.compile(
     r"^harbor\.seokpan\.soldesk\.store/seokpan/backend@sha256:[0-9a-f]{64}$"
 )
 
+APPROVAL_REF_RE = re.compile(
+    r"^seokpan/[a-z0-9._-]+#[1-9][0-9]*:issuecomment-[1-9][0-9]*$"
+)
+
 EXPECTED_HOST = "db.seokpan.soldesk.store"
 EXPECTED_PORT = "3306"
 EXPECTED_DATABASE = "stone_game"
@@ -49,6 +53,11 @@ def validate(args: argparse.Namespace) -> None:
             raise ValueError("approval-ref must not be blank")
         if "\n" in args.approval_ref or "\r" in args.approval_ref:
             raise ValueError("approval-ref must be a single line")
+        if not APPROVAL_REF_RE.fullmatch(args.approval_ref):
+            raise ValueError(
+                "approval-ref must use "
+                "seokpan/<repo>#<issue>:issuecomment-<comment-id>"
+            )
 
     if args.action in MUTATING_ACTIONS and args.approval_ref is None:
         raise ValueError(f"{args.action} requires --approval-ref")

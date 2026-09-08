@@ -73,7 +73,7 @@ Mutation Action은 반드시 승인 Reference를 요구합니다.
 Renderer는 Mutation Action에 대해 다음 App Gate 인자를 생성합니다.
 
     --execute
-    --approval-ref <approved-reference>
+    --approval-ref seokpan/<repo>#<issue-number>:issuecomment-<comment-id>
 
 Application의 `seokpan-migration-gate`가 Container 내부에서 다시 검증하므로 Renderer는 Application Gate를 대체하지 않습니다.
 
@@ -91,7 +91,7 @@ Application의 `seokpan-migration-gate`가 Container 내부에서 다시 검증�
     python3 apps/backend/migration/render-job.py \
       stamp-baseline \
       --image 'harbor.seokpan.soldesk.store/seokpan/backend@sha256:<verified-digest>' \
-      --approval-ref '<approved-reference>' \
+      --approval-ref 'seokpan/seokpan-gitops#44:issuecomment-1234567890' \
       --output /tmp/backend-migration-stamp.yaml
 
 ### Upgrade head
@@ -99,10 +99,28 @@ Application의 `seokpan-migration-gate`가 Container 내부에서 다시 검증�
     python3 apps/backend/migration/render-job.py \
       upgrade-head \
       --image 'harbor.seokpan.soldesk.store/seokpan/backend@sha256:<verified-digest>' \
-      --approval-ref '<approved-reference>' \
+      --approval-ref 'seokpan/seokpan-gitops#44:issuecomment-1234567890' \
       --output /tmp/backend-migration-upgrade.yaml
 
-`approval-ref`에는 다음 값을 포함하지 않습니다.
+`approval-ref`는 승인된 GitHub Issue Comment를 가리키는 다음 형식을 사용합니다.
+
+    seokpan/<repo>#<issue-number>:issuecomment-<comment-id>
+
+예:
+
+    seokpan/seokpan-gitops#44:issuecomment-1234567890
+
+Approval Reference 자체에는 실행 상세나 Credential을 중복 기록하지 않습니다.
+참조되는 승인 Comment가 최소 다음 Evidence를 보유해야 합니다.
+
+    Action
+    실행 대상
+    승인 시각
+    Backend Image Digest
+    사전 검증 결과
+    승인자
+
+`approval-ref` 및 참조되는 승인 Comment에는 다음 값을 포함하지 않습니다.
 
     Password
     DB URL
