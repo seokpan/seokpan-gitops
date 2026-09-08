@@ -38,6 +38,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: SEOKPAN_IDENTITY_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-db-runtime
+                  key: SEOKPAN_IDENTITY_DATABASE_URL
+            - name: SEOKPAN_GAME_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-db-runtime
+                  key: SEOKPAN_GAME_DATABASE_URL
           startupProbe:
             httpGet:
               path: /health/startup
