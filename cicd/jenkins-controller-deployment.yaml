@@ -90,6 +90,21 @@ spec:
                 secretKeyRef:
                   name: jenkins-harbor-credential
                   key: password
+            # [추가, 09/08] seokpan-app Issue #58 main Image Pipeline 전용 Robot Account
+            # (robot$seokpan+seokpan-api). Guard/Promote/Cleanup/Verify Stage가
+            # container('python')에서 Harbor REST API(Artifact 조회, Tag 생성/삭제)를
+            # 호출할 때 사용. 위 HARBOR_ROBOT_USERNAME/PASSWORD(BuildKit Push/Pull 전용,
+            # seokpan-ci)와는 완전히 다른 계정이며 서로 대체하지 않음.
+            - name: HARBOR_API_ROBOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-harbor-api-credential   # Ansible이 직접 주입 (GitOps 미포함)
+                  key: username
+            - name: HARBOR_API_ROBOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-harbor-api-credential
+                  key: password
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home
