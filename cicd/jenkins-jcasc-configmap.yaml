@@ -127,3 +127,16 @@ data:
                   username: "${HARBOR_ROBOT_USERNAME}"
                   password: "${HARBOR_ROBOT_PASSWORD}"
                   description: "Harbor push/pull robot account (seokpan project) - Ansible이 주입한 Secret 참조"
+              # [추가, 09/08] seokpan-app Issue #58 main Image Pipeline 전용.
+              # Guard/Promote/Cleanup/Verify Stage가 container('python')에서 urllib로
+              # Harbor REST API(Artifact 조회, Tag 생성/삭제)를 호출할 때 사용하는 별도
+              # Robot Account(robot$seokpan+seokpan-api). 위 harbor-robot-account
+              # (BuildKit Push/Pull 전용, seokpan-ci)와는 완전히 다른 계정이며 서로 대체하지 않음.
+              # 실제 값은 jenkins-harbor-api-credential Secret(Ansible이 클러스터에 직접 주입,
+              # GitOps 대상 아님)에서 Deployment env로 끌어온 뒤 ${} 치환으로만 참조.
+              - usernamePassword:
+                  scope: GLOBAL
+                  id: "harbor-api-robot-account"
+                  username: "${HARBOR_API_ROBOT_USERNAME}"
+                  password: "${HARBOR_API_ROBOT_PASSWORD}"
+                  description: "Harbor REST API robot account (seokpan project, Artifact/Tag 전용) - Ansible이 주입한 Secret 참조"
