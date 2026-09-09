@@ -39,13 +39,32 @@ Mount:     /etc/seokpan/pki/ca.crt
 Env:       SEOKPAN_DATABASE_CA_FILE=/etc/seokpan/pki/ca.crt
 ```
 
-`database-ca-configmap.yaml`에는 Ansible Controller의 공식 Root CA `/etc/pki/seokpan-ca/ca.crt`에서 가져온 공개 인증서만 포함합니다. GitOps 반영 전 `seokpan-app#50`에 기록된 X.509 SHA-256 Fingerprint와 일치함을 확인했습니다.
+`database-ca-configmap.yaml`에는 Ansible Controller의 공식 Root CA `/etc/pki/seokpan-ca/ca.crt`에서 인계받은 공개 인증서만 포함합니다.
 
-확인된 Fingerprint:
+2026-09-09 인계된 인증서는 기존 공개키·SKI를 유지하고, critical Key Usage에 Certificate Sign·CRL Sign을 포함합니다.
+새 인증서의 X.509 SHA-256 Fingerprint는 다음과 같습니다.
 
 ```text
-A3:3B:2F:BB:16:2B:41:5C:C7:91:7E:9B:F6:4A:6C:00:8E:CD:47:16:97:C4:F0:6D:0B:CF:DC:BA:E2:34:5B:96
+28:EE:82:23:2C:08:E7:48:A6:65:D7:98:65:AA:BB:5A:58:53:BE:32:BE:28:29:DB:37:F1:EE:02:6C:87:2F:60
 ```
+
+이전 지문 `A3:3B:2F:BB:16:2B:41:5C:C7:91:7E:9B:F6:4A:6C:00:8E:CD:47:16:97:C4:F0:6D:0B:CF:DC:BA:E2:34:5B:96`은 교체 전 이력입니다.
+현재 파일 대조에는 위 신규 지문을 사용합니다. Root CA 유효기간은 2026-09-09 08:03:30 UTC부터 2036-09-06 08:03:30 UTC까지이며, 서비스 인증서의 365일 발급 기준과 구분합니다.
+
+인계·검증 근거는 [Infra PR #163](https://github.com/seokpan/seokpan-infra/pull/163)과
+[GitOps #39](https://github.com/seokpan/seokpan-gitops/issues/39)에서 연결합니다.
+2026-09-09 Ansible Controller의 OpenSSL 3.5.7에서 MaxScale 설정 파일과 동일한 공개 인증서 사본을
+신규 CA로 `-x509_strict -purpose sslserver -verify_hostname db.seokpan.soldesk.store` 검증하여 통과했습니다(exit 0).
+명령·두 인증서 지문·원본/사본 파일 해시·실행 결과는 [검증 완료 댓글](https://github.com/seokpan/seokpan-gitops/issues/39#issuecomment-5602090338)에 기록돼 있습니다.
+공개 CA 파일의 지문·확장·자체 서명 검증과 MaxScale 서버 인증서 검증, 실제 DB 연결은 서로 다른 결과입니다.
+Harbor API 시험 성공을 Backend DB 연결 성공으로 대신하지 않습니다.
+
+ConfigMap 파일 변경만으로 실행 중인 Pod의 `subPath` 파일이 갱신되지는 않습니다.
+실제 적용 전에 Backend와 Migration 실행 상태를 확인하고, 가동 중인 Backend는 승인된 재기동 후 파일 지문·TLS·서비스 상태를 확인합니다.
+실행 중인 Migration은 임의로 중단하거나 재실행하지 않고 작업 종료와 CA 전환 시점을 조율합니다.
+새 Migration Job도 실행 전에 신규 CA를 확인하며, CA 검증을 위해 Migration을 실행하지 않습니다.
+Backend가 실제로 비활성 상태라면 CA 교체를 위해 Replica를 늘리거나 불필요한 재시작을 하지 않습니다.
+자세한 실행·완료 기준은 [GitOps #39](https://github.com/seokpan/seokpan-gitops/issues/39)에서 관리하며 이 파일 변경만으로 해당 Issue를 종료하지 않습니다.
 
 CA Private Key와 서비스 Private Key는 이 Repository에 포함하지 않습니다.
 
@@ -100,12 +119,12 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 1. Backend Container Image 존재
 2. Harbor Push 및 실제 Digest 확인
 3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 완료
-4. Infra에서 인계한 Root CA와 GitOps `ca.crt` Fingerprint 일치 확인 — 완료
+4. Infra 인계값과 저장소 공개 CA Fingerprint 일치 확인. 실제 적용 후 ConfigMap·소비 Pod의 신규 지문 및 MaxScale TLS 결과는 별도 확인
 5. MariaDB·Redis Provider 조립 완료
 6. Runtime DB Secret 계약 확정 — 완료
-   - 실제 Secret 값 공급: `seokpan-infra#150` 대기
+   - Secret 공급 자동화·담당자 검증: [Infra #150](https://github.com/seokpan/seokpan-infra/issues/150) 완료. 실제 실행 전 Secret 준비 상태와 접근 권한은 다시 확인
 7. One-shot Migration Kubernetes 실행 구조 확정 — 완료
-   - 실제 실행: `seokpan-infra#150`, 승인된 Image Digest, DB 사전 Gate 대기
+   - 실제 실행: 승인된 Image Digest·DB 사전 Gate·실행 승인 대기. 실행 전 `seokpan-infra#150`의 Secret 공급 상태 확인
 8. Provider 상태를 확인하는 readiness 기준 확인
 9. 초기 `replicas: 1` Smoke Test 준비
 10. Argo CD Child Application 연결 검토
