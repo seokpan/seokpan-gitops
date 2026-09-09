@@ -1,0 +1,41 @@
+# Owner: 정태훈
+# Scope: Kubernetes / Service Platform
+# Project: 石나가는 판단
+# Purpose: Redis Recovery 검증용 Data 담당 최소 권한
+# Related: seokpan-gitops#47, seokpan-infra#115
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ksh-redis-dr
+  namespace: platform
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    resourceNames:
+      - redis-0
+    verbs:
+      - delete
+
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    resourceNames:
+      - redis-0
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ksh-redis-dr
+  namespace: platform
+subjects:
+  - kind: ServiceAccount
+    name: ksh
+    namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ksh-redis-dr
