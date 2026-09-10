@@ -58,7 +58,7 @@ RUN npx --yes playwright@1.63.0 install --with-deps chromium --only-shell \
 # [신규] Chromium Headless Shell 바이너리 존재·동적 라이브러리 결여 여부를 Build 시점에
 # 확인한다. 런타임(Jenkinsfile Smoke)까지 기다리지 않고 Image 자체에서 fail-closed.
 RUN set -eu; \
-    shell_bin="$(find /opt/playwright-cache -type f -iname 'headless_shell' | head -n1)"; \
+    shell_bin="$(find /opt/playwright-cache -type f \( -iname 'headless_shell' -o -iname 'chrome-headless-shell' \) | head -n1)"; \ 
     if [ -z "$shell_bin" ]; then \
         echo "ERROR: chromium headless_shell binary not found under /opt/playwright-cache"; \
         exit 1; \
