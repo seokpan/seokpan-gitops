@@ -82,7 +82,7 @@ data:
                     workingDir: "/home/workspace"
                   - name: "python"
                     # python 컨테이너 이미지는 backend/Dockerfile의 python/uv 버전과 동기화 필요
-                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:8baf6c1f6910e2909c9b1ac38b93f782ca79d5859daf1f35ae6a085e1dd37bad"
+                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:3e8a96891914eface4a273df41e0077edf5b8239e602c412e99a03de368174be"
                     runAsUser: 1000
                     command: "cat"
                     ttyEnabled: true
