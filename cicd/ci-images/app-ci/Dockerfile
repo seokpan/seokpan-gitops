@@ -72,9 +72,9 @@ RUN set -eu; \
     fi; \
     echo "OK: headless_shell shared libraries all resolved"
 
-RUN groupadd --gid 1000 ciuser && \
+    RUN groupadd --gid 1000 ciuser && \
     useradd --uid 1000 --gid ciuser --shell /bin/bash --create-home ciuser && \
-    chmod -R go-w /opt/playwright-cache   # root 소유 유지, 그룹/기타 쓰기 권한만 제거
+    chmod -R a+rX,go-w /opt/playwright-cache   # root 소유 유지, 전체 읽기 보장 + 그룹/기타 쓰기만 제거
 
 USER ciuser
 WORKDIR /home/workspace
@@ -86,4 +86,11 @@ RUN if touch /opt/playwright-cache/.write-test 2>/dev/null; then \
         exit 1; \
     else \
         echo "OK: ciuser(1000) cannot write to /opt/playwright-cache"; \
-    fi
+    fi && \
+    unreadable="$(find /opt/playwright-cache -type f ! -readable)"; \
+    if [ -n "$unreadable" ]; then \
+        echo "ERROR: ciuser(1000) cannot read these files:"; \
+        echo "$unreadable"; \
+        exit 1; \
+    fi; \
+    echo "OK: all files under /opt/playwright-cache are readable by ciuser(1000)"
