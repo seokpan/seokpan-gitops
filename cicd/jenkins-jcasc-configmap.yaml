@@ -82,7 +82,7 @@ data:
                     workingDir: "/home/workspace"
                   - name: "python"
                     # python 컨테이너 이미지는 backend/Dockerfile의 python/uv 버전과 동기화 필요
-                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:8baf6c1f6910e2909c9b1ac38b93f782ca79d5859daf1f35ae6a085e1dd37bad"
+                    image: "harbor.seokpan.soldesk.store/seokpan/ci-python@sha256:19349910928096e034c1e45b51f3b446e95e152b2525695afe8fc791914b49a5"
                     runAsUser: 1000
                     command: "cat"
                     ttyEnabled: true
@@ -90,6 +90,11 @@ data:
                     resourceRequestMemory: "512Mi"
                     resourceLimitCpu: "1000m"
                     resourceLimitMemory: "2Gi"
+                    # runAsUser: 1000을 위한 Trivy 캐시 설정
+                    envVars:
+                      - envVar:
+                          key: "TRIVY_CACHE_DIR"
+                          value: "/tmp/.trivy_cache"
                   - name: "node"
                     image: "node:24.19.0-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43"
                     runAsUser: 1000
