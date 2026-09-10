@@ -137,6 +137,39 @@ data:
                     workingDir: "/home/workspace"
                 imagePullSecrets:
                   - name: "harbor-pull-secret"
+              # [신규] buildkit-rootless-pr — PR 검사의 Build Verify(push=false) 전용.
+              # buildkit-rootless(메인 Image Pipeline용, Harbor Push/Pull Credential 포함)와
+              # 완전히 분리된 형제 템플릿. Base 이미지가 전부 Public이고 Push를 하지 않으므로
+              # harbor-robot-dockerconfig/harbor-ca-cert/buildkit-config 어느 것도 필요 없다는
+              # 판단으로 Pod 레벨 volumes를 아예 선언하지 않았다 (팀 확인 대기 항목).
+              - name: "buildkit-rootless-pr"
+                label: "buildkit-rootless-pr"
+                namespace: "cicd"
+                idleMinutes: 0
+                podRetention: never
+                yaml: |
+                  spec:
+                    priorityClassName: cicd-low-priority
+                    containers:
+                      - name: buildkit
+                        securityContext:
+                          seccompProfile:
+                            type: Unconfined
+                containers:
+                  - name: "buildkit"
+                    image: "moby/buildkit:v0.32.2-rootless@sha256:504731e577c20559c00f968f33219f30115e70be29ab96728d1d06e963fc494b"
+                    runAsUser: 1000
+                    resourceRequestCpu: "500m"
+                    resourceRequestMemory: "1Gi"
+                    resourceLimitCpu: "2000m"
+                    resourceLimitMemory: "4Gi"
+                    command: "cat"
+                    ttyEnabled: true
+                    envVars:
+                      - envVar:
+                          key: "BUILDKITD_FLAGS"
+                          value: "--oci-worker-no-process-sandbox"
+                    workingDir: "/home/workspace"
     credentials:
       system:
         domainCredentials:
