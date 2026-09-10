@@ -113,6 +113,30 @@ data:
                       configMapName: "harbor-ca-cert"     
                 imagePullSecrets:
                   - name: "harbor-pull-secret"
+              # [신규] app-ci-check — buildkit-rootless와 형제 템플릿으로 완전히 분리.
+              # Pod 레벨 volumes 선언이 없으므로 harbor-robot-dockerconfig/harbor-ca-cert 등
+              # Credential이 이 Pod의 어떤 컨테이너에도 마운트되지 않는다.
+              - name: "app-ci-check"
+                label: "app-ci-check"
+                namespace: "cicd"
+                idleMinutes: 0
+                podRetention: never
+                yaml: |
+                  spec:
+                    priorityClassName: cicd-low-priority
+                containers:
+                  - name: "app-ci"
+                    image: "harbor.seokpan.soldesk.store/seokpan/app-ci@sha256:d054717586e31f3e733b340338bbde24e473bf47733c12031462750071b82502"
+                    runAsUser: 1000
+                    command: "cat"
+                    ttyEnabled: true
+                    resourceRequestCpu: "1000m"
+                    resourceRequestMemory: "2Gi"
+                    resourceLimitCpu: "2000m"
+                    resourceLimitMemory: "4Gi"
+                    workingDir: "/home/workspace"
+                imagePullSecrets:
+                  - name: "harbor-pull-secret"
     credentials:
       system:
         domainCredentials:
