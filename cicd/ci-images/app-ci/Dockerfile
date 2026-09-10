@@ -1,5 +1,6 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-09-09
+# 작성 날짜: 2026-09-09 (2026-09-10 개정: Build #1 실패 반영 - npm 강제 고정,
+# Chromium/UID 검증 Fail-closed 추가)
 #
 # App #62 Jenkins 검사 연결용 통합 CI 이미지 (app-ci).
 # Backend 설치·검사 -> OpenAPI -> Frontend 설치·검사 -> UI Browser -> Full Browser ->
@@ -16,12 +17,15 @@
 # /usr/local 트리만 복사해온다. 기존 uv 설치 방식(COPY --from=...)과 동일 패턴 재사용.
 # Digest는 cp-03에서 kubectl run(sleep 3600) 후 imageID로 확보 (2026-09-09).
 #
-# [Playwright Chromium 위치 - 별도 확인 필요] frontend/scripts/browser-e2e.mjs가
-# PLAYWRIGHT_BROWSERS_PATH를 frontend/.browser-cache로 코드에서 고정한다(App 소스 변경 금지).
-# 이 경로는 Jenkins Workspace Mount에 덮여 사라지므로, 이 이미지는 Workspace 바깥 경로
-# (/opt/playwright-cache)에 Chromium을 구워두기만 한다. 실제 frontend/.browser-cache로는
-# Jenkinsfile의 별도 Stage에서 복사(symlink 아님 — 팀 확정, 이유: Python/Node 검사 도구가
-# Checkout 안 심볼릭 링크를 거부함)한다.
+# [Playwright Chromium 위치] frontend/scripts/browser-e2e.mjs가 PLAYWRIGHT_BROWSERS_PATH를
+# frontend/.browser-cache로 코드에서 고정한다(App 소스 변경 금지). 이 경로는 Jenkins
+# Workspace Mount에 덮여 사라지므로, 이 이미지는 Workspace 바깥 경로(/opt/playwright-cache)에
+# Chromium을 구워두기만 한다. 실제 frontend/.browser-cache로는 Jenkinsfile의 별도 Stage에서
+# 복사(symlink 아님 — 팀 확정, 이유: Python/Node 검사 도구가 Checkout 안 심볼릭 링크를 거부함).
+#
+# [2026-09-10 확인] node:24.19.0-trixie-slim에 번들된 npm은 frontend/package.json의
+# packageManager(npm@12.0.2)와 다름을 실제 Build(scan-119b5d5a1405-manual)에서 확인.
+# Base 이미지의 bundled npm에 의존하지 않고 App 계약 버전으로 강제 설치한다.
 
 FROM python:3.13.15-slim-trixie@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
 
@@ -36,11 +40,13 @@ COPY --from=node:24.19.0-trixie-slim@sha256:ab3eebe934147fee049b5eb83c570f68c849
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
     ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
     node --version | grep -qx 'v24.19.0' || (echo "ERROR: node version mismatch" && exit 1) && \
-    npm --version | grep -qx '12.0.2' || (echo "ERROR: npm version mismatch, expected 12.0.2" && exit 1)
+    npm install -g npm@12.0.2 && \
+    npm --version | grep -qx '12.0.2' || (echo "ERROR: npm version mismatch after forced install, expected 12.0.2" && exit 1)
 
 # Git + Playwright Chromium Headless Shell 구동에 필요한 최소 OS 패키지
+# (findutils: 아래 headless_shell 바이너리 탐색용 find 명령에 필요)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ca-certificates \
+        git ca-certificates findutils \
     && rm -rf /var/lib/apt/lists/*
 
 # @playwright/test 자체는 App Lock으로 CI 단계에서 설치한다(Lock 변경 금지 원칙).
@@ -49,9 +55,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npx --yes playwright@1.63.0 install --with-deps chromium --only-shell \
     && mv /root/.cache/ms-playwright /opt/playwright-cache
 
+# [신규] Chromium Headless Shell 바이너리 존재·동적 라이브러리 결여 여부를 Build 시점에
+# 확인한다. 런타임(Jenkinsfile Smoke)까지 기다리지 않고 Image 자체에서 fail-closed.
+RUN set -eu; \
+    shell_bin="$(find /opt/playwright-cache -type f -iname 'headless_shell' | head -n1)"; \
+    if [ -z "$shell_bin" ]; then \
+        echo "ERROR: chromium headless_shell binary not found under /opt/playwright-cache"; \
+        exit 1; \
+    fi; \
+    echo "headless_shell binary: $shell_bin"; \
+    missing="$(ldd "$shell_bin" 2>&1 | grep 'not found' || true)"; \
+    if [ -n "$missing" ]; then \
+        echo "ERROR: missing shared libraries for headless_shell:"; \
+        echo "$missing"; \
+        exit 1; \
+    fi; \
+    echo "OK: headless_shell shared libraries all resolved"
+
 RUN groupadd --gid 1000 ciuser && \
     useradd --uid 1000 --gid ciuser --shell /bin/bash --create-home ciuser && \
     chmod -R go-w /opt/playwright-cache   # root 소유 유지, 그룹/기타 쓰기 권한만 제거
 
 USER ciuser
 WORKDIR /home/workspace
+
+# [신규] UID 1000(ciuser)이 /opt/playwright-cache에 쓸 수 없는지 Build 시점에 확인한다
+# (root 소유 유지 + go-w로 그룹/기타 쓰기만 제거했다는 설계를 실제로 검증).
+RUN if touch /opt/playwright-cache/.write-test 2>/dev/null; then \
+        echo "ERROR: ciuser(1000) can write to /opt/playwright-cache - permission too open"; \
+        exit 1; \
+    else \
+        echo "OK: ciuser(1000) cannot write to /opt/playwright-cache"; \
+    fi
