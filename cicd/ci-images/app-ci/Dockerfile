@@ -19,8 +19,9 @@
 # [Playwright Chromium 위치 - 별도 확인 필요] frontend/scripts/browser-e2e.mjs가
 # PLAYWRIGHT_BROWSERS_PATH를 frontend/.browser-cache로 코드에서 고정한다(App 소스 변경 금지).
 # 이 경로는 Jenkins Workspace Mount에 덮여 사라지므로, 이 이미지는 Workspace 바깥 경로
-# (/opt/playwright-cache)에 Chromium을 구워두기만 한다. 실제 frontend/.browser-cache로
-# 연결(symlink)하는 작업은 Jenkinsfile의 별도 Stage에서 수행 (팀 확인 대기 중 항목).
+# (/opt/playwright-cache)에 Chromium을 구워두기만 한다. 실제 frontend/.browser-cache로는
+# Jenkinsfile의 별도 Stage에서 복사(symlink 아님 — 팀 확정, 이유: Python/Node 검사 도구가
+# Checkout 안 심볼릭 링크를 거부함)한다.
 
 FROM python:3.13.15-slim-trixie@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
 

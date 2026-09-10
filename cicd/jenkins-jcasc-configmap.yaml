@@ -126,7 +126,7 @@ data:
                     priorityClassName: cicd-low-priority
                 containers:
                   - name: "app-ci"
-                    image: "harbor.seokpan.soldesk.store/seokpan/app-ci@sha256:<TBD>"
+                    image: "harbor.seokpan.soldesk.store/seokpan/app-ci@sha256:scan-0d0b9529303b-manual"
                     runAsUser: 1000
                     command: "cat"
                     ttyEnabled: true
