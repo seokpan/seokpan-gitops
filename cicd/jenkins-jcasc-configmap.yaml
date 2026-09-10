@@ -90,6 +90,11 @@ data:
                     resourceRequestMemory: "512Mi"
                     resourceLimitCpu: "1000m"
                     resourceLimitMemory: "2Gi"
+                    # runAsUser: 1000을 위한 Trivy 캐시 설정
+                    envVars:
+                      - envVar:
+                          key: "TTRIVY_CACHE_DIR"
+                          value: "/tmp/.trivy_cache"
                   - name: "node"
                     image: "node:24.19.0-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43"
                     runAsUser: 1000

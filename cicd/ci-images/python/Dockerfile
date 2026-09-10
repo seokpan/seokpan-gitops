@@ -22,4 +22,7 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:e85be844203885286c60ffad8a858d48afb6c5a5
 
 # TODO(확인 필요): 아래 digest를 실제 pull 결과로 교체할 것. 임시로 태그만
 # 명시해두었으며, digest 없이는 재현성이 깨지므로 이 상태로 merge 금지.
-COPY --from=aquasec/trivy:0.72.0 /usr/local/bin/trivy /usr/local/bin/trivy
+COPY --from=aquasec/trivy:0.72.0@sha256:3e8a96891914eface4a273df41e0077edf5b8239e602c412e99a03de368174be /usr/local/bin/trivy /usr/local/bin/trivy
+
+# runAsUser: 1000 환경에서 권한 오류 방지를 위한 캐시 경로 명시
+ENV TRIVY_CACHE_DIR=/tmp/.trivy_cache
