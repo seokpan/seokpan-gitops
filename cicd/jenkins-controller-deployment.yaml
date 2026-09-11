@@ -17,8 +17,6 @@
 #
 # [replicas=1 고정 이유] Jenkins Controller는 Stateful 컴포넌트라 다중 replica 미지원
 # (jenkins_home 동시 쓰기 충돌). 고가용성이 필요하면 별도 백업/복구 전략(DR, M-04)으로 대응.
-# [2026-09-11] install-plugins initContainer가 참조하는 파일을 plugins.txt → plugins.lock으로 전환.
-# plugins.lock은 최상위+전이 의존성 전체를 고정한 목록 (jenkins-controller-plugins-configmap.yaml 참고).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,7 +48,7 @@ spec:
           command:
             - jenkins-plugin-cli
             - "--plugin-file"
-            - /var/jenkins_plugins/plugins.lock
+            - /var/jenkins_plugins/plugins.txt
             - "--plugin-download-directory"
             - /var/jenkins_home/plugins
           volumeMounts:
