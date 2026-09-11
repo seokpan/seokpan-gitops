@@ -175,6 +175,9 @@ data:
                           key: "BUILDKITD_FLAGS"
                           value: "--oci-worker-no-process-sandbox"
                     workingDir: "/home/workspace"
+    unclassified:
+      location:
+        url: "http://jenkins-controller.cicd.svc.cluster.local:8080/"
     credentials:
       system:
         domainCredentials:
