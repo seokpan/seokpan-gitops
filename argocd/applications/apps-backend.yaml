@@ -1,0 +1,25 @@
+# Owner: 최유준 (GitOps 연결) / 정태훈 (Manifest 내용)
+# Scope: Delivery & Observability
+# Project: 石나가는 판단
+# Purpose: Backend Application Deployment/Service GitOps Desired State 연결
+# 관련: seokpan-gitops#29, seokpan-gitops#35, seokpan-app#50
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-backend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seokpan/seokpan-gitops.git
+    targetRevision: main
+    path: apps/backend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: application
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
