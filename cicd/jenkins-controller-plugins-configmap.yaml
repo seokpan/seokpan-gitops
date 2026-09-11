@@ -19,7 +19,7 @@ data:
     credentials-binding:728.v902a_273b_8947
     github-branch-source:1983.vfa_27ed961853
     timestamper:1.30
-  plugins.lock: |
+  plugins-lock.txt: |
     antisamy-markup-formatter:173.v680e3a_b_69ff3
     apache-httpcomponents-client-4-api:4.5.14-269.vfa_2321039a_83
     asm-api:9.10.1-216.va_9256d3b_844b_

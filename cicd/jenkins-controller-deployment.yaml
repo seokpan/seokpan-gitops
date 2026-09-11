@@ -50,7 +50,7 @@ spec:
           command:
             - jenkins-plugin-cli
             - "--plugin-file"
-            - /var/jenkins_plugins/plugins.lock
+            - /var/jenkins_plugins/plugins-lock.txt
             - "--plugin-download-directory"
             - /var/jenkins_home/plugins
           volumeMounts:
