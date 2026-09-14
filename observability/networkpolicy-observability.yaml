@@ -110,10 +110,11 @@ spec:
         - protocol: TCP
           port: 8000    # [TODO] Backend/Redis 실제 metrics 포트로 교체
 ---
-# 2) Prometheus → kubelet/cAdvisor 및 CP 정적 컴포넌트 (Node IP 직접 스크랩, ipBlock 사용)
-# [해결됨, 2026-09-14] controller-manager/scheduler/etcd/kube-proxy 포트 누락 발견 및 추가.
-# controller-manager(10257)/scheduler(10259)/etcd(2381)는 CP 노드에만 리스닝하므로
-# Worker ipBlock과는 별도 to 블록으로 분리. kube-proxy(10249)는 CP+Worker 전체 대상.
+# 2) Prometheus → kubelet/cAdvisor (Node IP 직접 스크랩, Pod 대상이 아니므로 ipBlock 사용)
+# [해결됨, 2026-09-11→2026-09-14 되돌림] PR #70에서 controller-manager(10257)/scheduler(10259)/
+# etcd(2381)/kube-proxy(10249) egress를 임시 추가했으나, Issue #177 결정에 따라
+# 해당 4종 직접 Scrape 자체를 kube-prometheus-stack에서 비활성화하기로 하여 불필요해진
+# egress 허용을 제거함(최소 권한 원칙). 10250(kubelet)만 유지.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -130,30 +131,16 @@ spec:
         - ipBlock:
             cidr: 192.168.51.20/32   # cp-01
         - ipBlock:
+            cidr: 192.168.51.30/32   # worker-01
+        - ipBlock:
             cidr: 192.168.52.20/32   # cp-02
+        - ipBlock:
+            cidr: 192.168.52.30/32   # worker-02
         - ipBlock:
             cidr: 192.168.53.20/32   # cp-03
       ports:
         - protocol: TCP
           port: 10250   # kubelet metrics/cAdvisor
-        - protocol: TCP
-          port: 10257   # kube-controller-manager
-        - protocol: TCP
-          port: 10259   # kube-scheduler
-        - protocol: TCP
-          port: 2381    # kube-etcd (stacked)
-        - protocol: TCP
-          port: 10249   # kube-proxy
-    - to:
-        - ipBlock:
-            cidr: 192.168.51.30/32   # worker-01
-        - ipBlock:
-            cidr: 192.168.52.30/32   # worker-02
-      ports:
-        - protocol: TCP
-          port: 10250   # kubelet metrics/cAdvisor
-        - protocol: TCP
-          port: 10249   # kube-proxy
 
 ---
 # 3) Prometheus → 외부 VM Exporter (node_exporter / mysqld_exporter / haproxy_exporter)

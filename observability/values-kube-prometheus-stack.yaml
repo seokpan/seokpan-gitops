@@ -42,3 +42,28 @@ alertmanager:
   alertmanagerSpec:
     storage: {}   # README: 기본 PVC 없음
 
+# [해결됨, 2026-09-14, 최유준] Issue #177 결정:
+# Chart 기본값으로 controller-manager/scheduler/etcd/kube-proxy Scrape가 활성화되어 있었으나,
+# G-07(06 문서 14장)이 이 4종 Component 직접 수집을 요구 대상으로 명시하지 않음을 확인.
+# Technical Freeze(9/16) 임박 대비 kubeadm 재구성·host firewall 신설 비용이 과도하여 비활성화 결정.
+# (참고: kube-proxy는 DaemonSet으로 CP+Worker 전체 대상이며, controller-manager/scheduler/etcd
+#  Static Pod 3종과는 배포 형태가 다름 — bind-address 방식도 각각 다름)
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeEtcd:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeProxy: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
