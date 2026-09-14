@@ -7,11 +7,12 @@
 아직 실제 Runtime 활성화 단계가 아닙니다.
 
 - Deployment는 `replicas: 0`으로 유지합니다.
-- Image는 `git-pending` sentinel을 사용합니다.
+- Image는 A-09에서 검증한 Frontend Digest로 고정되어 있습니다.
+- Deployment는 `application/harbor-pull-secret`을 명시적으로 참조합니다.
 - Argo CD Child Application `apps-frontend`는 Root Application에 편입되어 `apps/frontend`를 `main` 기준으로 관리합니다.
 - 실제 Frontend Runtime은 별도 활성화 PR에서 진행합니다.
 
-현재 GitOps 관리 편입과 실제 Frontend Runtime 활성화는 별개의 상태입니다. `apps-frontend` Application이 존재하고 Desired State가 Sync되어 있어도 `replicas: 0`, `git-pending` 상태에서는 실제 Frontend Pod가 실행되지 않습니다.
+현재 GitOps 관리 편입과 실제 Frontend Runtime 활성화는 별개의 상태입니다. `apps-frontend` Application이 존재하고 Image Digest와 Pull Secret 참조가 준비되어 있어도 `replicas: 0` 상태에서는 실제 Frontend Pod가 실행되지 않습니다.
 
 ## Runtime 계약
 
@@ -24,7 +25,7 @@
 
 CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를 확인합니다.
 
-첫 Runtime 활성화 시 `kustomization.yaml`의 `images` 항목을 실제 Digest 고정 방식으로 전환하고, 이후 Jenkins는 같은 Image 항목의 Digest만 변경하는 GitOps PR을 생성합니다.
+현재 `kustomization.yaml`의 `images` 항목은 A-09에서 검증한 실제 Digest로 고정되어 있습니다. 이후 Image 갱신 자동화 방식은 별도 설계하며, 승인된 GitOps PR에서 같은 Image 항목의 Digest를 변경합니다.
 
 `latest`는 사용하지 않습니다.
 

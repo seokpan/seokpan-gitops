@@ -18,6 +18,8 @@ spec:
       labels:
         app.kubernetes.io/name: backend
     spec:
+      imagePullSecrets:
+        - name: harbor-pull-secret
       terminationGracePeriodSeconds: 45
       securityContext:
         seccompProfile:

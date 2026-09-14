@@ -57,6 +57,11 @@ CA Private Key와 MaxScale Service Private Key는 사용하지 않습니다.
 
 `git-pending`, `latest` 또는 이동 가능한 Tag는 실제 실행에 사용하지 않습니다.
 
+Private Backend Image Pull에는 일반 Backend Deployment와 같은
+`application/harbor-pull-secret`을 명시적으로 사용합니다. 이 Secret은
+Application Runtime 전용 pull-only Harbor Robot으로 공급하며 CI Push/API
+Credential을 재사용하지 않습니다.
+
 ## 지원 Action
 
     current

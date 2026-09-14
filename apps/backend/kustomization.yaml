@@ -14,4 +14,4 @@ resources:
 images:
   - name: harbor.seokpan.soldesk.store/seokpan/backend
     newName: harbor.seokpan.soldesk.store/seokpan/backend
-    newTag: git-pending
+    digest: sha256:4e57c150ffc04f41d5124e1c41c535d4edbc22edc40481ac20d4b474c5a7ac4d
