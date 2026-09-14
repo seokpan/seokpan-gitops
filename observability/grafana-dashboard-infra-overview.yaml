@@ -1,0 +1,165 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-14
+#
+# [배경] Issue #69 -> PR #70 -> Issue #177 -> 후속 PR 로 Prometheus target 정상화 완료.
+# controller-manager/scheduler/etcd/kube-proxy 직접 Scrape는 Issue #177(Not Planned)
+# 결정에 따라 비활성화되어 있으므로, 이 대시보드의 CP(Control Plane) 관련 패널은
+# kube-apiserver 자체 metrics만 사용한다 (etcd quorum 등 직접 지표는 포함하지 않음).
+#
+# [범위] mentoring/MENTORING-01_2026-09-01.md 지침상 요구되는 최소 2개 관점 분리 중
+# Node/Cluster 관점 대시보드. Service Overview / M-01 동시성 대시보드(Backend 의존,
+# grafana-dashboard-m01-concurrency)와는 완전히 분리된 별도 파일이며, 해당 placeholder는
+# 이 작업에서 수정하지 않는다.
+#
+# [Datasource] observability/grafana-dashboard-provisioning.yaml 에서 Prometheus가
+# isDefault: true 로 설정되어 있으므로, 아래 패널들은 datasource를 명시하지 않고
+# Grafana 기본 datasource를 사용한다 (uid 하드코딩으로 인한 provisioning 환경 간
+# 불일치 방지 목적). 배포 후 실제로 기본 datasource가 올바르게 적용되는지 확인 필요.
+#
+# [출처] Grafana.com 공식 커뮤니티 대시보드(Node Exporter Full 등) JSON 원본은
+# 네트워크 정책상 직접 조회가 불가능하여, 동일한 표준 metric 이름 체계
+# (node_exporter / kube-state-metrics / kube-apiserver) 기준으로 자체 작성함.
+# 추후 그라파나 UI에서 공식 대시보드를 열람 가능하면 패널 구성을 상호 대조/보강할 것.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-infra-overview
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  infra-overview.json: |
+    {
+      "title": "Kubernetes / Infrastructure Overview",
+      "uid": "seokpan-infra-overview",
+      "tags": ["seokpan", "infrastructure", "node", "cluster"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "node",
+            "type": "query",
+            "datasource": null,
+            "query": "label_values(node_uname_info, nodename)",
+            "multi": true,
+            "includeAll": true,
+            "refresh": 2
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "CP - kube-apiserver Request Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(apiserver_request_total[5m])) by (verb, code)",
+              "legendFormat": "{{verb}} - {{code}}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "CP - kube-apiserver Error Rate (5xx)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(apiserver_request_total{code=~\"5..\"}[5m])) / sum(rate(apiserver_request_total[5m]))",
+              "legendFormat": "5xx error ratio"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "CP - kube-apiserver Request Latency (p99)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket[5m])) by (le, verb))",
+              "legendFormat": "p99 - {{verb}}"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Node - CPU Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Node - Memory Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Node - Disk Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "targets": [
+            {
+              "expr": "100 - ((node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"}) * 100)",
+              "legendFormat": "{{instance}} - {{mountpoint}}"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Pod - Restart Count (1h)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+          "targets": [
+            {
+              "expr": "increase(kube_pod_container_status_restarts_total[1h])",
+              "legendFormat": "{{namespace}}/{{pod}}/{{container}}"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "Pod - Phase Distribution",
+          "type": "piechart",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_status_phase) by (phase)",
+              "legendFormat": "{{phase}}"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "Node - Ready Status",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 32 },
+          "targets": [
+            {
+              "expr": "kube_node_status_condition{condition=\"Ready\", status=\"true\"}",
+              "legendFormat": "{{node}}"
+            }
+          ]
+        }
+      ]
+    }
