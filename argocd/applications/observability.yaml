@@ -2,8 +2,7 @@
 # Scope: Delivery & Observability
 # Project: 石나가는 판단
 # Purpose: kube-prometheus-stack(Prometheus/Grafana/Alertmanager) + 부속 Manifest GitOps Desired State
-# 관련: (Observability 연동 확인 Issue 번호 기입)
-# [주의] Root Sync 전 선행조건 3가지(observability/README.md 참고) 확인 후 Merge할 것
+# Current State: Root Application 편입 완료. 이후 변경은 Git Desired State와 Argo CD Sync를 기준으로 운영합니다.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
