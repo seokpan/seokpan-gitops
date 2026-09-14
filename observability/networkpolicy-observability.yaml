@@ -183,7 +183,12 @@ spec:
         - protocol: TCP
           port: 9101    # haproxy_exporter
 ---
-# 4) Grafana → Prometheus / Loki
+# 4) Grafana → Prometheus / Loki / kube-apiserver (sidecar ConfigMap/Secret watch)
+# [해결됨, 2026-09-14, 최유준] grafana-sc-datasources/grafana-sc-dashboard sidecar가
+# ConfigMap/Secret watch를 위해 kube-apiserver에 직접 질의해야 하는데 egress 누락으로
+# list-based sync가 계속 타임아웃(10.96.0.1:443 connect timeout) -> provisioning 디렉토리가
+# 항상 비어있어 datasource/dashboard가 전혀 반영되지 않던 문제.
+# Prometheus egress(정책 10)와 동일 패턴: CP 3대 IP(05 물리 아키텍처 기준) /32, port 6443.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -211,7 +216,7 @@ spec:
         - protocol: TCP
           port: 3100
     - to:
-        - namespaceSelector:  
+        - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: kube-system
       ports:
@@ -219,6 +224,17 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    - to:
+        - ipBlock:
+            cidr: 192.168.51.20/32   # cp-01
+        - ipBlock:
+            cidr: 192.168.52.20/32   # cp-02
+        - ipBlock:
+            cidr: 192.168.53.20/32   # cp-03
+      ports:
+        - protocol: TCP
+          port: 6443
+
 ---
 # 5) Alloy(DaemonSet, in-cluster) → Loki
 # [주의] 외부 VM(systemd Alloy)에서 Loki로 들어오는 경로는 이 NetworkPolicy 대상이 아님 —
