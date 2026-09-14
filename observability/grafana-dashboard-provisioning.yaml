@@ -18,24 +18,21 @@ metadata:
   name: grafana-datasources
   namespace: observability
   labels:
-    grafana_datasource: "1"   # kube-prometheus-stack sidecar가 인식하는 라벨, 배포 시 재확인
+# Dashboard ConfigMap 뼈대 예시 (M-01: 동시성 정합성 대시보드, 내용은 추후 채움)
 data:
   datasources.yaml: |
     apiVersion: 1
     datasources:
-      - name: Prometheus
-        type: prometheus
-        access: proxy
-        url: http://prometheus-operated.observability.svc.cluster.local:9090
-        isDefault: true
-        editable: false   # UI 직접 수정 방지 — Provisioning 파일만 진실 소스
+      # [해결됨, 2026-09-14, 최유준] Prometheus 항목 제거 — Helm 차트가 자동 생성하는
+      # kube-prometheus-stack-grafana-datasource ConfigMap과 isDefault: true 중복으로
+      # "Only one datasource per organization can be marked as default" provisioning 실패 발생.
+      # Prometheus는 해당 자동생성 ConfigMap(uid: prometheus)에서 계속 default로 제공됨.
       - name: Loki
         type: loki
         access: proxy
         url: http://loki.observability.svc.cluster.local:3100
         editable: false
 ---
-# Dashboard ConfigMap 뼈대 예시 (M-01: 동시성 정합성 대시보드, 내용은 추후 채움)
 apiVersion: v1
 kind: ConfigMap
 metadata:
