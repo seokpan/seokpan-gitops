@@ -1,0 +1,25 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-14
+#
+# [배경] Alloy는 Selector 기반 in-cluster Service(alloy-daemonset.yaml 참고)를 이미 가지고 있어
+# servicemonitor-external-exporters.yaml의 수동 EndpointSlice 패턴(외부 VM 대상)과 달리
+# 표준 Selector 기반 ServiceMonitor로 충분함. serviceDiscoveryRole 명시 불필요(기본값 Endpoints).
+# release: kube-prometheus-stack 라벨은 기존 mariadb-exporter/node-exporter-external/harbor-metrics
+# ServiceMonitor와 동일 컨벤션(kube-prometheus-stack Helm Chart serviceMonitorSelector 매칭용).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: alloy
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - observability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  endpoints:
+    - port: http-metrics
+      interval: 30s

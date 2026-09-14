@@ -1,0 +1,97 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-14
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: observability
+roleRef:
+  kind: ClusterRole
+  name: alloy
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: alloy
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alloy
+    spec:
+      serviceAccountName: alloy
+      # Control Plane(cp-01~03) Pod 로그도 수집 범위에 포함 (12.1 문서: Pod·Node Log 전체 수집)
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.6.1
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy/data
+          ports:
+            - name: http-metrics
+              containerPort: 12345
+          volumeMounts:
+            - name: alloy-config
+              mountPath: /etc/alloy
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+      volumes:
+        - name: alloy-config
+          configMap:
+            name: alloy-config
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: alloy
+spec:
+  selector:
+    app.kubernetes.io/name: alloy
+  ports:
+    - name: http-metrics
+      port: 12345
+      targetPort: http-metrics
