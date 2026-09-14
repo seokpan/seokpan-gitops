@@ -89,10 +89,17 @@ spec:
         - protocol: TCP
           port: 8080    # kube-state-metrics
     - to:
-        - namespaceSelector: {}   # CoreDNS(kube-system)/Grafana/operator - Pod IP 기준, 네임스페이스 확정 후 좁힐 것
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
           port: 9153    # CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
         - protocol: TCP
           port: 3000    # Grafana
         - protocol: TCP
