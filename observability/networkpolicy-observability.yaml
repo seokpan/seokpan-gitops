@@ -38,6 +38,10 @@
 # [해결됨, 2026-09-03] CoreDNS namespace 확인 완료 — kube-system, kube-dns Service(10.96.0.10:53).
 # 기존 DNS egress(정책 1, 4)의 namespaceSelector: {} 를 kube-system으로 좁히고,
 # 신규 추가된 Alloy(정책 5)·Alertmanager(정책 6) DNS egress도 동일하게 kube-system으로 통일.
+# [해결됨, 2026-09-14, 최유준] Prometheus target 19건 down(context deadline exceeded) 원인 3종 해결.
+# (1) kube-controller-manager(10257)/kube-scheduler(10259)/kube-etcd(2381)/kube-proxy(10249) 미허용
+# (2) CoreDNS(9153)/Grafana(3000)/operator(10250, Pod IP) 미허용
+# (3) Alertmanager Ingress에 config-reloader(8080) 미허용
 
 
 # 1) Prometheus → in-cluster 대상 (kube-state-metrics, FastAPI/Redis, Alertmanager)
@@ -74,14 +78,35 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: kube-system
-              
       ports:
         - protocol: UDP
           port: 53
         - protocol: TCP
           port: 53
+    - to:
+        - namespaceSelector: {}   # kube-state-metrics 네임스페이스 확정 후 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 8080    # kube-state-metrics
+    - to:
+        - namespaceSelector: {}   # CoreDNS(kube-system)/Grafana/operator - Pod IP 기준, 네임스페이스 확정 후 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 9153    # CoreDNS
+        - protocol: TCP
+          port: 3000    # Grafana
+        - protocol: TCP
+          port: 10250   # kube-prometheus-stack-operator (Pod IP, kubelet 정책과 별개)
+    - to:
+        - namespaceSelector: {}   # Backend(FastAPI)/Redis 네임스페이스(application) 확정 후 좁힐 것
+      ports:
+        - protocol: TCP
+          port: 8000    # [TODO] Backend/Redis 실제 metrics 포트로 교체
 ---
-# 2) Prometheus → kubelet/cAdvisor (Node IP 직접 스크랩, Pod 대상이 아니므로 ipBlock 사용)
+# 2) Prometheus → kubelet/cAdvisor 및 CP 정적 컴포넌트 (Node IP 직접 스크랩, ipBlock 사용)
+# [해결됨, 2026-09-14] controller-manager/scheduler/etcd/kube-proxy 포트 누락 발견 및 추가.
+# controller-manager(10257)/scheduler(10259)/etcd(2381)는 CP 노드에만 리스닝하므로
+# Worker ipBlock과는 별도 to 블록으로 분리. kube-proxy(10249)는 CP+Worker 전체 대상.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -98,16 +123,31 @@ spec:
         - ipBlock:
             cidr: 192.168.51.20/32   # cp-01
         - ipBlock:
-            cidr: 192.168.51.30/32   # worker-01
-        - ipBlock:
             cidr: 192.168.52.20/32   # cp-02
-        - ipBlock:
-            cidr: 192.168.52.30/32   # worker-02
         - ipBlock:
             cidr: 192.168.53.20/32   # cp-03
       ports:
         - protocol: TCP
           port: 10250   # kubelet metrics/cAdvisor
+        - protocol: TCP
+          port: 10257   # kube-controller-manager
+        - protocol: TCP
+          port: 10259   # kube-scheduler
+        - protocol: TCP
+          port: 2381    # kube-etcd (stacked)
+        - protocol: TCP
+          port: 10249   # kube-proxy
+    - to:
+        - ipBlock:
+            cidr: 192.168.51.30/32   # worker-01
+        - ipBlock:
+            cidr: 192.168.52.30/32   # worker-02
+      ports:
+        - protocol: TCP
+          port: 10250   # kubelet metrics/cAdvisor
+        - protocol: TCP
+          port: 10249   # kube-proxy
+
 ---
 # 3) Prometheus → 외부 VM Exporter (node_exporter / mysqld_exporter / haproxy_exporter)
 apiVersion: networking.k8s.io/v1
@@ -295,6 +335,8 @@ spec:
       ports:
         - protocol: TCP
           port: 9093
+        - protocol: TCP
+          port: 8080    # [해결됨, 2026-09-14] config-reloader sidecar - Prometheus egress는 이미 허용(정책 1, namespaceSelector:{} 8080)되어 있었으나 Alertmanager 쪽 Ingress 미허용으로 막혀 있었음
 ---
 # 9) [신규 추가, 2026-09-03] Loki ← Grafana / Alloy Ingress
 # Grafana의 Egress(정책 4, Loki:3100)와 Alloy의 Egress(정책 5, Loki:3100) 양쪽과 짝을 이루는 Ingress.
