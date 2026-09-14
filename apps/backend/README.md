@@ -8,8 +8,10 @@
 
 - Deployment는 `replicas: 0`으로 유지합니다.
 - Image는 `git-pending` sentinel을 사용합니다.
-- Argo CD Child Application은 아직 연결하지 않습니다.
-- 실제 DB URL 및 Credential은 포함하지 않습니다.
+- Argo CD Child Application `apps-backend`는 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리합니다.
+- 실제 DB URL 및 Credential은 Git에 포함하지 않습니다.
+
+현재 GitOps 관리 편입과 실제 Backend Runtime 활성화는 별개의 상태입니다. `apps-backend` Application이 존재하고 Desired State가 Sync되어 있어도 `replicas: 0`, `git-pending` 상태에서는 실제 Backend Pod가 실행되지 않습니다.
 
 ## Runtime 계약
 
@@ -127,12 +129,15 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
    - 실제 실행: 승인된 Image Digest·DB 사전 Gate·실행 승인 대기. 실행 전 `seokpan-infra#150`의 Secret 공급 상태 확인
 8. Provider 상태를 확인하는 readiness 기준 확인
 9. 초기 `replicas: 1` Smoke Test 준비
-10. Argo CD Child Application 연결 검토
+10. Argo CD Child Application 연결 — 완료
+    - `apps-backend`가 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리하며 `prune: true`, `selfHeal: true`를 사용합니다.
+    - Runtime 활성화 전에는 `apps-backend`의 Sync/Health와 실제 적용 Revision을 다시 확인합니다.
 
 1 Replica 통합 검증 전에는 2 Replica 이상으로 확장하지 않습니다.
 
 ## 후속 연결
 
+- `seokpan-gitops#58` — Backend/Frontend Child Application Root 편입 및 Sync 검증
 - `seokpan-gitops#44` — 승인형 One-shot Migration Kubernetes Job 실행 구조
 - `seokpan-gitops#35` — Backend MaxScale TLS 공개 CA 주입 구조
 - `seokpan-app#50` — Backend/Alembic MaxScale TLS Client
