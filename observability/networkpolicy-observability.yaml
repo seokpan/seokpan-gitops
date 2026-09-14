@@ -300,6 +300,12 @@ spec:
 # Grafana의 Egress(정책 4, Loki:3100)와 Alloy의 Egress(정책 5, Loki:3100) 양쪽과 짝을 이루는 Ingress.
 # Ingress 없이는 Grafana의 Log 조회와 Alloy의 Log 수집·전달이 모두 막힘.
 # [참고] 외부 VM(systemd Alloy)의 수집 경로는 별도 NodePort Ingress이며 이 정책 범위 밖(정책 5 주석 참고).
+# [해결됨, 2026-09-11, 최유준] Prometheus → kube-apiserver(6443) Egress 규칙 누락 발견 및 추가.
+# kubernetes_sd_configs(role: endpoints 등)가 Service Discovery를 위해 kube-apiserver에
+# 직접 질의해야 하는데 이 경로가 통째로 빠져 있어 activeTargets=0(전체 Target 미수집) 상태였음.
+# CP 3대 IP(05 물리 아키텍처 기준)에 /32로 제한. Common VIP가 아니라 CP 개별 IP로 직접 통신하는
+# 것이 정상 — kube-apiserver Service의 실제 Endpoints가 CP 3대 IP:6443으로 구성되어 있음
+# (kubectl get endpoints kubernetes -n default 확인).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -322,3 +328,28 @@ spec:
       ports:
         - protocol: TCP
           port: 3100
+
+---
+# 10) [신규 추가, 2026-09-11] Prometheus → kube-apiserver (Service Discovery)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress-apiserver
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.51.20/32   # cp-01
+        - ipBlock:
+            cidr: 192.168.52.20/32   # cp-02
+        - ipBlock:
+            cidr: 192.168.53.20/32   # cp-03
+      ports:
+        - protocol: TCP
+          port: 6443
