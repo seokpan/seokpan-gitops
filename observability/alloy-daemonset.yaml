@@ -56,6 +56,11 @@ spec:
             - run
             - /etc/alloy/config.alloy
             - --storage.path=/var/lib/alloy/data
+            # [수정, 2026-09-14, 최유준] PR 리뷰 반영: run 서브커맨드 기본 bind가
+            # 127.0.0.1:12345라 Service/ServiceMonitor(Pod IP 경유)가 접근 불가했음.
+            # NetworkPolicy 12·13이 이미 Prometheus↔Alloy:12345만 허용하도록 범위를
+            # 제한하고 있으므로 0.0.0.0 bind로도 접근 범위는 정책으로 통제됨.
+            - --server.http.listen-addr=0.0.0.0:12345
           ports:
             - name: http-metrics
               containerPort: 12345
