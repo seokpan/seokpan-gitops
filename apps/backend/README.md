@@ -4,15 +4,15 @@
 
 ## 현재 단계
 
-아직 실제 Runtime 활성화 단계가 아닙니다.
+Production Provider의 첫 실제 Runtime 검증 단계입니다.
 
-- Deployment는 `replicas: 0`으로 유지합니다.
-- Image는 A-09에서 검증한 Backend Digest로 고정되어 있습니다.
+- Deployment는 검증 범위를 제한하기 위해 `replicas: 1`로 활성화합니다.
+- Image는 A-10 Production Provider 구현과 보안 보완을 포함한 Backend Digest `sha256:c120c4b80c86dac8bdec7a4dd3be11edf46384f8ddb7007c713e5c6cbc594e54`로 고정합니다.
 - Deployment는 `application/harbor-pull-secret`을 명시적으로 참조합니다.
 - Argo CD Child Application `apps-backend`는 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리합니다.
 - 실제 DB URL 및 Credential은 Git에 포함하지 않습니다.
 
-현재 GitOps 관리 편입과 실제 Backend Runtime 활성화는 별개의 상태입니다. `apps-backend` Application이 존재하고 Image Digest와 Pull Secret 참조가 준비되어 있어도 `replicas: 0` 상태에서는 실제 Backend Pod가 실행되지 않습니다.
+App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존 검증을 완료한 뒤 한 개 Backend Pod만 먼저 실행합니다. 이 단계에서는 실제 MariaDB·Redis 연결과 Health를 확인하며, 해당 검증 전에는 2 Replica로 확장하지 않습니다.
 
 ## Runtime 계약
 
@@ -111,28 +111,30 @@ Migration DB Secret:
 
 CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를 확인합니다.
 
-현재 `kustomization.yaml`의 `images` 항목은 A-09에서 검증한 실제 Digest로 고정되어 있습니다. 이후 Image 갱신 자동화 방식은 별도 설계하며, 승인된 GitOps PR에서 같은 Image 항목의 Digest를 변경합니다.
+현재 `kustomization.yaml`의 `images` 항목은 A-10 Production Provider 구현과 보안 보완을 포함한 검증 Image Digest로 고정되어 있습니다. 이후 Image 갱신 자동화 방식은 별도 설계하며, 승인된 GitOps PR에서 같은 Image 항목의 Digest를 변경합니다.
 
 `latest`는 사용하지 않습니다.
 
-## Runtime 활성화 전 Gate
+## Runtime 활성화 Gate
 
-다음 조건을 확인한 뒤 별도 PR에서 Runtime을 활성화합니다.
+다음 선행 조건을 기준으로 이 변경에서 Backend 한 개 Replica를 활성화합니다.
 
-1. Backend Container Image 존재
-2. Harbor Push 및 실제 Digest 확인
-3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 완료
-4. Infra 인계값과 저장소 공개 CA Fingerprint 일치 확인. 실제 적용 후 ConfigMap·소비 Pod의 신규 지문 및 MaxScale TLS 결과는 별도 확인
-5. MariaDB·Redis Provider 조립 완료
+1. Backend Container Image 존재 — 완료
+2. Harbor Push 및 실제 Digest 확인 — 완료
+3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 — 완료
+4. Infra 인계값과 저장소 공개 CA Fingerprint 일치 — 완료
+   - 실제 소비 Pod의 CA와 MaxScale TLS 연결은 1 Replica 적용 후 확인
+5. MariaDB·Redis Provider 조립 — 완료
 6. Runtime DB Secret 계약 확정 — 완료
-   - Secret 공급 자동화·담당자 검증: [Infra #150](https://github.com/seokpan/seokpan-infra/issues/150) 완료. 실제 실행 전 Secret 준비 상태와 접근 권한은 다시 확인
-7. One-shot Migration Kubernetes 실행 구조 확정 — 완료
-   - 실제 실행: 승인된 Image Digest·DB 사전 Gate·실행 승인 대기. 실행 전 `seokpan-infra#150`의 Secret 공급 상태 확인
-8. Provider 상태를 확인하는 readiness 기준 확인
-9. 초기 `replicas: 1` Smoke Test 준비
+   - Secret 공급 자동화·담당자 검증: [Infra #150](https://github.com/seokpan/seokpan-infra/issues/150) 완료. 실제 Cluster Secret의 Key 구조도 활성화 전 확인
+7. One-shot Migration Kubernetes 실행 구조 및 `20260902_0002` 적용 — 완료
+   - App #22 승인 참조로 실행했으며 적용 전후 Schema 분류와 기존 업무 행 보존을 확인
+8. Production 시작 시 MariaDB 두 역할과 Redis 연결 Probe 구현 — 완료
+   - 실제 Cluster 성공 여부는 1 Replica 적용 후 확인
+9. 초기 `replicas: 1` Smoke Test — 이 변경 적용 후 실제 MariaDB·Redis 및 Health 확인
 10. Argo CD Child Application 연결 — 완료
     - `apps-backend`가 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리하며 `prune: true`, `selfHeal: true`를 사용합니다.
-    - Runtime 활성화 전에는 `apps-backend`의 Sync/Health와 실제 적용 Revision을 다시 확인합니다.
+    - 활성화 전 `apps-backend`의 Sync/Health와 실제 적용 Revision `5e2fdadde3a6fc69b4e20defba41e05afce92104`를 확인했습니다.
 
 1 Replica 통합 검증 전에는 2 Replica 이상으로 확장하지 않습니다.
 

@@ -1,7 +1,7 @@
 # Owner: 정태훈
 # Scope: Application Runtime / GitOps
 # Related: seokpan-gitops#29, seokpan-gitops#35, seokpan-app#50
-# Runtime activation is intentionally blocked until a real image digest and provider wiring are ready.
+# Initial production-provider activation is limited to one replica for runtime verification.
 
 apiVersion: apps/v1
 kind: Deployment
@@ -9,7 +9,7 @@ metadata:
   name: backend
   namespace: application
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: backend
