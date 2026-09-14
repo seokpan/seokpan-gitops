@@ -25,6 +25,8 @@ spec:
         app.kubernetes.io/part-of: seokpan
     spec:
       automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: harbor-pull-secret
       restartPolicy: Never
       securityContext:
         seccompProfile:

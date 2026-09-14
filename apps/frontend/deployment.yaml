@@ -18,6 +18,8 @@ spec:
       labels:
         app.kubernetes.io/name: frontend
     spec:
+      imagePullSecrets:
+        - name: harbor-pull-secret
       securityContext:
         seccompProfile:
           type: RuntimeDefault
