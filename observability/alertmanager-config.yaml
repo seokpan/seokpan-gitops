@@ -48,7 +48,7 @@ stringData:
     receivers:
       - name: "default-email"
         email_configs:
-          - to: "cyj20115@gmail.com"   # [TODO] 실제 팀 수신 주소로 교체
+          - to: "cyj200115@gmail.com"   # [TODO] 실제 팀 수신 주소로 교체
             send_resolved: true
 
       - name: "critical-email"
