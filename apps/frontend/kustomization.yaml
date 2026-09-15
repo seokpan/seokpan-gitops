@@ -8,8 +8,9 @@ namespace: application
 resources:
   - deployment.yaml
   - service.yaml
+  - pdb.yaml
 
 images:
   - name: harbor.seokpan.soldesk.store/seokpan/frontend
     newName: harbor.seokpan.soldesk.store/seokpan/frontend
-    digest: sha256:767d7da1f5c7dae5a3056ca5a97265c0be552035e5431763ef498f8ff858eb1b
+    digest: sha256:123203a4c5a5490690164deb68dffd929b6b9a45e36476e521f5c95ec70b0701
