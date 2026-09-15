@@ -70,6 +70,18 @@ spec:
             - name: varlogpods
               mountPath: /var/log/pods
               readOnly: true
+            # 신규: journal 로그 수집용 (volatile journal만 존재, worker-01 확인)
+            - name: runlogjournal
+              mountPath: /run/log/journal
+              readOnly: true
+            - name: machineid
+              mountPath: /etc/machine-id
+              readOnly: true
+          securityContext:
+            # /run/log/journal 하위 디렉터리가 root:systemd-journal, group만 읽기
+            # 가능(drwxr-s---+)이며 GID가 노드별로 동적 할당될 수 있어 group
+            # 매핑 대신 root로 읽음 (worker-01 ls -la 결과 기준)
+            runAsUser: 0
           resources:
             requests:
               cpu: "100m"
@@ -85,6 +97,15 @@ spec:
           hostPath:
             path: /var/log/pods
             type: Directory
+        # 신규
+        - name: runlogjournal
+          hostPath:
+            path: /run/log/journal
+            type: Directory
+        - name: machineid
+          hostPath:
+            path: /etc/machine-id
+            type: File
 ---
 apiVersion: v1
 kind: Service

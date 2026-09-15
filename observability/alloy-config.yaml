@@ -71,3 +71,33 @@ data:
     livedebugging {
       enabled = true
     }
+
+    // ── 노드 systemd journal 로그 수집 ──
+    // worker-01 확인 결과: persistent journal(/var/log/journal) 없음, volatile
+    // journal(/run/log/journal)만 존재. group systemd-journal 전용 권한이라
+    // 컨테이너는 root로 읽음(아래 securityContext 참고).
+    discovery.relabel "journal" {
+      targets = []
+
+      rule {
+        source_labels = ["__journal__systemd_unit"]
+        target_label  = "unit"
+      }
+
+      rule {
+        source_labels = ["__journal__hostname"]
+        target_label  = "node_name"
+      }
+
+      rule {
+        source_labels = ["__journal_priority_keyword"]
+        target_label  = "level"
+      }
+    }
+
+    loki.source.journal "node_journal" {
+      path          = "/run/log/journal"
+      relabel_rules = discovery.relabel.journal.rules
+      labels        = {job = "systemd-journal"}
+      forward_to    = [loki.write.default.receiver]
+    }
