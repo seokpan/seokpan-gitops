@@ -11,3 +11,4 @@ kind: Kustomization
 resources:
   - nginx-proxy.yaml
   - gateway.yaml
+  - httproutes.yaml
