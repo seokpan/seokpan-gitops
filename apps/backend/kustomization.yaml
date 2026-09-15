@@ -9,6 +9,7 @@ resources:
   - configmap.yaml
   - database-ca-configmap.yaml
   - deployment.yaml
+  - pdb.yaml
   - service.yaml
 
 images:
