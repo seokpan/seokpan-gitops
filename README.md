@@ -33,14 +33,16 @@ SeokPan 프로젝트는 실시간 투표형 웹게임 오목 서비스를 Kubern
 
 주요 관리 대상은 다음과 같습니다.
 
-| 구분            | 관리 내용                                                |
-| ------------- | ---------------------------------------------------- |
-| Argo CD       | Kubernetes 배포를 관리하는 도구와 Application 설정               |
-| Application   | Frontend / Backend 등 실제 서비스                          |
-| Platform      | Gateway, Redis, Storage, Namespace, RBAC 등 공통 환경     |
-| CI/CD         | Jenkins 등 빌드 및 배포 관련 서비스                             |
-| Observability | Prometheus, Grafana, Loki, Alloy, Alertmanager 등     |
-| Kubernetes 설정 | Service, Deployment, ConfigMap, HPA, NetworkPolicy 등 |
+| 구분            | 관리 내용                                                    |
+| ------------- | -------------------------------------------------------- |
+| Argo CD       | Kubernetes 배포를 관리하는 도구와 Application 설정                   |
+| Application   | Frontend / Backend 등 실제 서비스                              |
+| Platform      | Gateway, Redis, Storage, Namespace, RBAC 등 공통 환경         |
+| CI/CD         | Jenkins 등 빌드 및 배포 관련 서비스                                 |
+| Observability | Prometheus, Grafana, Loki, Alloy, Alertmanager 등         |
+| Kubernetes 설정 | Deployment, Service, ConfigMap 등 현재 사용 중인 Kubernetes 리소스 |
+
+> HPA, NetworkPolicy 등의 리소스는 향후 필요에 따라 추가할 수 있으며, 현재 저장소의 주요 관리 대상에는 포함하지 않습니다.
 
 ---
 
@@ -197,14 +199,15 @@ apps/
 
 * Frontend
 * Backend
+* Deployment
 * Service
-* HPA
-* NetworkPolicy
 * 애플리케이션에 필요한 ConfigMap 등
 
 애플리케이션의 **소스코드 자체는 이 저장소에서 관리하지 않습니다.**
 
 소스코드는 `seokpan-app`에서 관리하고, 이 저장소에서는 Kubernetes에서 실행할 방법을 관리합니다.
+
+> HPA, NetworkPolicy 등의 리소스는 현재 주요 구성에는 포함되어 있지 않으며, 필요할 경우 향후 `apps/` 영역에 추가할 수 있습니다.
 
 ---
 
@@ -370,7 +373,7 @@ SeokPan 프로젝트는 각 저장소의 역할을 나누어서 관리합니다.
 
 > Kubernetes에서 어떻게 실행할 것인가?
 
-Deployment, Service, HPA 등의 Kubernetes Desired State를 관리합니다.
+현재 Kubernetes에서 사용하는 Deployment, Service, ConfigMap 등의 **Desired State**와 Argo CD 구성을 관리합니다.
 
 **`seokpan-docs`**
 
@@ -382,27 +385,24 @@ Deployment, Service, HPA 등의 Kubernetes Desired State를 관리합니다.
 
 ## 📚 관련 문서
 
-GitOps의 상세한 설계와 전체 아키텍처는 `seokpan-docs`에서 관리합니다.
+GitOps의 상세한 설계와 전체 아키텍처는 [`seokpan-docs`](https://github.com/seokpan/seokpan-docs)에서 관리합니다.
 
 README에서는 전체 내용을 반복해서 작성하지 않고 필요한 상세 문서로 이동할 수 있도록 구성합니다.
 
-### 아키텍처
-
-* 전체 논리 아키텍처
-* 전체 물리 아키텍처
-* Kubernetes 및 서비스 구성
-
-### GitOps
-
-* Kubernetes 배포 구조
-* Argo CD 구성
-* 애플리케이션 배포 흐름
-
 ### 프로젝트 기준
 
-* MVP 구현 기준
-* 프로젝트 변경 기록
-* 테스트 및 검증 문서
+* [`MVP 구현 기준`](https://github.com/seokpan/seokpan-docs/blob/main/MVP_IMPLEMENTATION_BASELINE.md)
+* [`프로젝트 변경 기록`](https://github.com/seokpan/seokpan-docs/blob/main/PROJECT_CHANGES.md)
+
+### GitOps / Kubernetes
+
+* [`Kubernetes Application Integration 실시설계`](https://github.com/seokpan/seokpan-docs/blob/main/09_MVP_실행·통합_실시설계/09_MVP_실행·통합_실시설계_Kubernetes_Application_Integration_정태훈.md)
+* [`GitHub 협업 및 Repository 운영`](https://github.com/seokpan/seokpan-docs/blob/main/10_GitHub_협업_및_Repository_운영/10_GitHub_협업_및_Repository_운영.md)
+* [`Kubernetes Application Integration Runbook`](https://github.com/seokpan/seokpan-docs/blob/main/11_MVP_구축·자동화_Runbook/11_MVP_구축·자동화_Runbook_Kubernetes_Application_Integration_정태훈.md)
+
+### 검증
+
+* [`Kubernetes Application Integration 검증 계획`](https://github.com/seokpan/seokpan-docs/blob/main/12_MVP_검증·측정_계획/12_MVP_검증·측정_계획_Kubernetes_Application_Integration_정태훈.md)
 
 > `seokpan-gitops`에서는 **실제 Kubernetes 설정을 관리**하고,
 > `seokpan-docs`에서는 **그 설정을 왜 사용하고 어떻게 검증했는지**를 관리합니다.
@@ -468,35 +468,14 @@ Kubernetes에 직접 접속하여 설정을 변경하기보다 Git 저장소의 
 
 **4. Argo CD가 Kubernetes에 반영합니다.**
 
-Git의 Desired State와 Kubernetes의 실제 상태를 비교하고 필요한 변경을 적용합니다.
+Git의 Desired State와 Kubernetes의 실제 상태를 비교하고, 변경 사항을 Kubernetes에 반영합니다.
 
 ---
 
-## 🎯 정리
+## ✅ README 작성 기준
 
-`seokpan-gitops`는 SeokPan 프로젝트의 **Kubernetes 배포 상태를 코드로 관리하는 저장소**입니다.
+이 README는 `seokpan-gitops`의 **현재 저장소 구조와 실제 구현 상태를 기준으로 작성합니다.**
 
-전체 흐름은 다음과 같습니다.
+따라서 아직 저장소에 존재하지 않는 Kubernetes 리소스나 향후 도입 예정인 기능은 현재 구성처럼 표현하지 않고, 필요한 경우 별도로 예정 사항임을 명시합니다.
 
-```text
-애플리케이션 코드
-      ↓
-    Jenkins
-      ↓
-    Harbor
-      ↓
-seokpan-gitops
-      ↓
-    Argo CD
-      ↓
- Kubernetes
-```
-
-즉,
-
-> **`seokpan-app`은 애플리케이션을 관리하고,
-> `seokpan-infra`는 실행 환경을 만들고,
-> `seokpan-gitops`는 Kubernetes에서 실행할 상태를 관리하며,
-> `seokpan-docs`는 전체 설계와 검증 내용을 관리합니다.**
-
-이렇게 저장소별 역할을 나누어 관리함으로써 **코드 변경 → 이미지 생성 → 배포 상태 변경 → Kubernetes 배포**까지의 과정을 Git 기록으로 확인할 수 있도록 구성합니다.
+상세한 설계, 구축 과정, 테스트 및 검증 결과는 [`seokpan-docs`](https://github.com/seokpan/seokpan-docs)에서 관리합니다.
