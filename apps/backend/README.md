@@ -8,6 +8,7 @@ Production Provider의 2 Replica 공유 상태 검증 단계입니다.
 
 - Deployment는 1 Replica Provider Gate 통과 후 `replicas: 2`로 확장합니다.
 - 두 Pod는 `kubernetes.io/hostname` 기준 `DoNotSchedule` Topology Spread를 사용해 두 Worker에 분산합니다.
+- RollingUpdate는 `maxSurge: 0`, `maxUnavailable: 1`로 고정해 두 Worker가 모두 사용 중인 상태에서도 강제 분산 규칙과 교착되지 않고 한 Pod씩 교체합니다.
 - PodDisruptionBudget `minAvailable: 1`로 계획된 중단에서 두 Pod가 동시에 축출되지 않도록 합니다.
 - Image는 A-10 Production Provider 구현과 보안 보완을 포함한 Backend Digest `sha256:c120c4b80c86dac8bdec7a4dd3be11edf46384f8ddb7007c713e5c6cbc594e54`로 고정합니다.
 - Deployment는 `application/harbor-pull-secret`을 명시적으로 참조합니다.
@@ -137,8 +138,9 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 10. Argo CD Child Application 연결 — 완료
     - `apps-backend`가 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리하며 `prune: true`, `selfHeal: true`를 사용합니다.
     - 1 Replica 활성화 Revision `843dbea031b6549b9d056a35d60334d23a0c38b7`의 Sync/Health를 확인했습니다.
-11. `replicas: 2` 공유 상태 검증 — 이 변경 적용 후 확인
-    - 두 Worker 분산, PDB, 두 Pod Ready, 한 Pod에서 발급한 Guest Session의 다른 Pod 조회·폐기, 폐기 후 원 Pod 거부를 확인
+11. `replicas: 2` 공유 상태 검증 — 롤링 전략 보완 후 재개
+    - 최초 적용에서 기존 두 Pod가 두 Worker를 점유한 채 Surge Pod를 먼저 생성해 `DoNotSchedule`과 교착되는 것을 확인했습니다. 기존 두 Pod는 Ready 상태를 유지해 서비스 장애는 없었습니다.
+    - `maxSurge: 0`, `maxUnavailable: 1` 적용 후 두 Worker 분산, PDB, 두 Pod Ready, 한 Pod에서 발급한 Guest Session의 다른 Pod 조회·폐기, 폐기 후 원 Pod 거부를 확인합니다.
 
 2 Replica 교차 검증이 통과하기 전에는 Frontend·Gateway를 활성화하지 않습니다.
 
