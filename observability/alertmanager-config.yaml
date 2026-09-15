@@ -48,11 +48,11 @@ stringData:
     receivers:
       - name: "default-email"
         email_configs:
-          - to: "cyj200115@gmail.com"   # [TODO] 실제 팀 수신 주소로 교체
+          - to: "seokpan@soldesk.store"   
             send_resolved: true
 
       - name: "critical-email"
         email_configs:
-          - to: "cyj200115@gmail.com"   # [TODO] Critical은 별도 수신자(예: 온콜)로 분리 검토
+          - to: "seokpan@soldesk.store"  
             send_resolved: true
 
