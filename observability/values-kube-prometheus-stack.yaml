@@ -41,6 +41,15 @@ grafana:
 alertmanager:
   alertmanagerSpec:
     storage: {}   # README: 기본 PVC 없음
+    # [2026-09-15] configSecret 명시 — 미지정 시 기본값이 alertmanager-<CR이름>으로
+    # 잡혀 기존 alertmanager-config Secret과 이름이 어긋남. alertmanager.yaml을
+    # 소유하는 Secret을 명시적으로 고정.
+    configSecret: alertmanager-config
+    # Ansible이 별도 공급하는 SMTP Credential(smtp-password 1개 키)을
+    # /etc/alertmanager/secrets/alertmanager-smtp-credential/ 경로에 마운트.
+    # configSecret(alertmanager.yaml 소유)과는 별개 — 06 문서 4.1 Secret 경계 준수.
+    secrets:
+      - alertmanager-smtp-credential
 
 # [해결됨, 2026-09-14, 최유준] Issue #177 결정:
 # Chart 기본값으로 controller-manager/scheduler/etcd/kube-proxy Scrape가 활성화되어 있었으나,

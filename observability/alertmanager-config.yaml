@@ -22,10 +22,14 @@ type: Opaque
 stringData:
   alertmanager.yaml: |
     global:
-      smtp_smarthost: "smtp.example.com:587"   # [TODO] 실제 SMTP 서버:포트로 교체
-      smtp_from: "seokpan-alert@example.com"    # [TODO] 실제 발신 계정으로 교체
-      smtp_auth_username: "seokpan-alert@example.com"
-      smtp_auth_password: "PLACEHOLDER"          # [TODO] Vault 연동으로 대체, 하드코딩 금지
+      smtp_smarthost: "smtp.resend.com:587"
+      smtp_from: "alertmanager@alerts-seokpan.soldesk.store"
+      smtp_auth_username: "resend"
+      # Ansible alertmanager_secret Role이 공급하는 Credential Secret을
+      # alertmanagerSpec.secrets로 마운트한 경로를 참조. 이 파일(GitOps)에는
+      # 비밀값이 없고 파일 경로만 있음 — 06 문서 4.1 Secret 경계 준수.
+      smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-smtp-credential/smtp-password
+      smtp_require_tls: true
 
     route:
       receiver: "default-email"
@@ -44,11 +48,11 @@ stringData:
     receivers:
       - name: "default-email"
         email_configs:
-          - to: "seokpan-team@example.com"   # [TODO] 실제 팀 수신 주소로 교체
+          - to: "cyj200115@gmail.com"   # [TODO] 실제 팀 수신 주소로 교체
             send_resolved: true
 
       - name: "critical-email"
         email_configs:
-          - to: "seokpan-team@example.com"   # [TODO] Critical은 별도 수신자(예: 온콜)로 분리 검토
+          - to: "cyj200115@gmail.com"   # [TODO] Critical은 별도 수신자(예: 온콜)로 분리 검토
             send_resolved: true
 
