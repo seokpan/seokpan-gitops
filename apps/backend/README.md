@@ -4,15 +4,17 @@
 
 ## 현재 단계
 
-Production Provider의 첫 실제 Runtime 검증 단계입니다.
+Production Provider의 2 Replica 공유 상태 검증 단계입니다.
 
-- Deployment는 검증 범위를 제한하기 위해 `replicas: 1`로 활성화합니다.
+- Deployment는 1 Replica Provider Gate 통과 후 `replicas: 2`로 확장합니다.
+- 두 Pod는 `kubernetes.io/hostname` 기준 `DoNotSchedule` Topology Spread를 사용해 두 Worker에 분산합니다.
+- PodDisruptionBudget `minAvailable: 1`로 계획된 중단에서 두 Pod가 동시에 축출되지 않도록 합니다.
 - Image는 A-10 Production Provider 구현과 보안 보완을 포함한 Backend Digest `sha256:c120c4b80c86dac8bdec7a4dd3be11edf46384f8ddb7007c713e5c6cbc594e54`로 고정합니다.
 - Deployment는 `application/harbor-pull-secret`을 명시적으로 참조합니다.
 - Argo CD Child Application `apps-backend`는 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리합니다.
 - 실제 DB URL 및 Credential은 Git에 포함하지 않습니다.
 
-App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존 검증을 완료한 뒤 한 개 Backend Pod만 먼저 실행합니다. 이 단계에서는 실제 MariaDB·Redis 연결과 Health를 확인하며, 해당 검증 전에는 2 Replica로 확장하지 않습니다.
+App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존 검증을 완료했습니다. Backend 1 Replica에서 승인 Image·공개 CA Mount, 실제 MariaDB 두 역할과 Redis Provider readiness, 세 Health Endpoint, Argo CD Healthy를 확인했으므로 두 Replica의 공유 Session·상태 수렴 검증으로 진행합니다.
 
 ## Runtime 계약
 
@@ -25,7 +27,7 @@ App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존 검�
 - Readiness: `/health/ready`
 - `SEOKPAN_INSTANCE_ID`: Pod `metadata.name` Downward API
 
-현재 `/health/ready`는 MariaDB·Redis Provider 상태까지 확인하지 않으므로 Provider readiness 완료와 구분합니다.
+Production의 `/health/ready`는 시작 시 MariaDB 두 역할의 `SELECT 1`, Redis `PING`과 필수 Runner 조립이 성공한 뒤에만 200을 반환합니다. 각 Pod의 readiness와 별도로 두 Pod 사이 공유 상태·이벤트 전달은 실제 교차 요청으로 검증합니다.
 
 ## DB / Migration 경계
 
@@ -123,20 +125,22 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 2. Harbor Push 및 실제 Digest 확인 — 완료
 3. `seokpan-app#50`의 TLS Client 구현 및 정적 검증 — 완료
 4. Infra 인계값과 저장소 공개 CA Fingerprint 일치 — 완료
-   - 실제 소비 Pod의 CA와 MaxScale TLS 연결은 1 Replica 적용 후 확인
+   - 실제 소비 Pod의 CA Mount와 MaxScale TLS 연결을 1 Replica에서 확인
 5. MariaDB·Redis Provider 조립 — 완료
 6. Runtime DB Secret 계약 확정 — 완료
    - Secret 공급 자동화·담당자 검증: [Infra #150](https://github.com/seokpan/seokpan-infra/issues/150) 완료. 실제 Cluster Secret의 Key 구조도 활성화 전 확인
 7. One-shot Migration Kubernetes 실행 구조 및 `20260902_0002` 적용 — 완료
    - App #22 승인 참조로 실행했으며 적용 전후 Schema 분류와 기존 업무 행 보존을 확인
-8. Production 시작 시 MariaDB 두 역할과 Redis 연결 Probe 구현 — 완료
-   - 실제 Cluster 성공 여부는 1 Replica 적용 후 확인
-9. 초기 `replicas: 1` Smoke Test — 이 변경 적용 후 실제 MariaDB·Redis 및 Health 확인
+8. Production 시작 시 MariaDB 두 역할과 Redis 연결 Probe 구현·실제 Cluster 성공 — 완료
+9. 초기 `replicas: 1` Smoke Test — 완료
+   - Pod Ready·Restart 0, Image ID, CA Mount, `/health/startup`·`/health/live`·`/health/ready`, Argo CD Healthy 확인
 10. Argo CD Child Application 연결 — 완료
     - `apps-backend`가 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리하며 `prune: true`, `selfHeal: true`를 사용합니다.
-    - 활성화 전 `apps-backend`의 Sync/Health와 실제 적용 Revision `5e2fdadde3a6fc69b4e20defba41e05afce92104`를 확인했습니다.
+    - 1 Replica 활성화 Revision `843dbea031b6549b9d056a35d60334d23a0c38b7`의 Sync/Health를 확인했습니다.
+11. `replicas: 2` 공유 상태 검증 — 이 변경 적용 후 확인
+    - 두 Worker 분산, PDB, 두 Pod Ready, 한 Pod에서 발급한 Guest Session의 다른 Pod 조회·폐기, 폐기 후 원 Pod 거부를 확인
 
-1 Replica 통합 검증 전에는 2 Replica 이상으로 확장하지 않습니다.
+2 Replica 교차 검증이 통과하기 전에는 Frontend·Gateway를 활성화하지 않습니다.
 
 ## 후속 연결
 
