@@ -40,7 +40,7 @@ spec:
               app.kubernetes.io/name: frontend
       containers:
         - name: frontend
-          image: harbor.seokpan.soldesk.store/seokpan/frontend:git-pending
+          image: harbor.seokpan.soldesk.store/seokpan/frontend:git-0eb98405f6d7
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
