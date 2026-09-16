@@ -38,7 +38,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backend
-          image: harbor.seokpan.soldesk.store/seokpan/backend:git-0eb98405f6d7
+          image: harbor.seokpan.soldesk.store/seokpan/backend:git-pending
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
