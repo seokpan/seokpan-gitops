@@ -7,6 +7,8 @@ kind: Service
 metadata:
   name: backend
   namespace: application
+  labels:
+    app.kubernetes.io/name: backend
 spec:
   type: ClusterIP
   selector:

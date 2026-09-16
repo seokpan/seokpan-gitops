@@ -1,0 +1,27 @@
+# Owner: Delivery & Observability
+# Scope: Application Metrics
+# Related: seokpan-gitops#91
+#
+# Backend Service의 metadata label과 selector 계약:
+# app.kubernetes.io/name: backend
+#
+# /metrics는 Gateway에 공개하지 않고 Cluster 내부 Prometheus 수집에만 사용합니다.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: seokpan-app-metrics
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - application
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
