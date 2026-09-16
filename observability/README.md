@@ -40,43 +40,36 @@ Prometheus/Loki의 Node·hostPath, Observability NetworkPolicy, CoreDNS/hosts �
 
 ---
 
-## Application ServiceMonitor 보류
+## Application ServiceMonitor
 
-Application용 ServiceMonitor 자산은 현재 `servicemonitor-app.yaml.pending`으로 유지하며 Argo CD 적용 대상에서 제외합니다.
+Application Metrics 수집은 GitOps #91을 기준으로 활성화합니다.
 
-Backend Service는 `apps/backend/service.yaml`에 존재하고 `apps-backend` Child Application을 통해 GitOps 관리 대상에 편입되어 있습니다. 다만 Backend Runtime 자체는 아직 `replicas: 0`, `git-pending`이며 Application Metrics 수집도 검증되지 않았습니다.
+Backend Runtime은 현재 2 Replica로 운영 중이며 새 Metrics Image에서 각 Pod의 `/metrics` HTTP 200과 다음 Metric 노출을 실제 확인했습니다.
 
-또한 `ServiceMonitor.spec.selector.matchLabels`는 **Service의 `metadata.labels`** 를 선택합니다. 현재 Backend Service에는 ServiceMonitor가 선택할 `metadata.labels` 계약이 아직 정의되어 있지 않습니다. `Service.spec.selector`의 Pod 선택 라벨과 ServiceMonitor의 Service 선택 라벨을 같은 것으로 취급하지 않습니다.
+- `python_info`
+- `process_cpu_seconds_total`
+- `seokpan_http_requests_total`
+- `seokpan_http_request_duration_seconds`
 
-### 현재 확인된 계약
+ServiceMonitor 선택 계약은 다음과 같습니다.
 
-| 항목 | 값 | 상태 |
-|---|---|---|
-| Namespace | `application` | 확정 |
-| Backend Service | `backend` | 존재 |
-| Service Port 이름 | `http` | 확정 |
-| Metrics 경로 | `/metrics` | Runtime 미검증 |
-| ServiceMonitor selector 후보 | `app.kubernetes.io/name: backend` | **후속 Service `metadata.labels` 계약 필요** |
+| 항목 | 값 |
+|---|---|
+| Target Namespace | `application` |
+| Backend Service | `backend` |
+| Service metadata label | `app.kubernetes.io/name: backend` |
+| Service Port | `http:8000` |
+| Metrics Path | `/metrics` |
+| Scrape Interval | `15s` |
+| ServiceMonitor Namespace | `observability` |
+| Prometheus 선택 label | `release: kube-prometheus-stack` |
 
-### 이번 현행화 범위
+`ServiceMonitor.spec.selector.matchLabels`는 Service의 `metadata.labels`를 선택하며, Service의 `spec.selector`가 Pod를 선택하는 것과 구분합니다.
 
-- Root/Child Application 경로를 현재 구조로 정정
-- Backend Service가 이미 존재한다는 현재 상태 반영
-- ServiceMonitor가 아직 `.pending`인 이유를 Runtime 미활성·Metrics 미검증·Service metadata label 미확정으로 정리
-- pending 파일의 selector를 **후속 metadata label 계약 후보값**으로만 명시
+Application ServiceMonitor는 본 변경 Merge 이후 `observability/servicemonitor-app.yaml`을 통해 Git Desired State에서 관리합니다. Application Metrics 수집 완료는 Argo CD Sync 후 Prometheus Target `UP`과 실제 Application Metric Query를 확인한 뒤 판정합니다.
 
-### 실제 재활성화 조건
+Observability Platform이 정상 운영 중이라는 사실만으로 Application Metrics 수집 완료를 의미하지 않습니다.
 
-실제 ServiceMonitor 활성화는 GitOps #91에서 별도 추적합니다.
+`/metrics`는 Cluster 내부 수집 대상으로 유지하며 Gateway public route에는 추가하지 않습니다.
 
-1. Backend Runtime이 실제로 활성화됨
-2. Backend가 `/metrics`를 실제로 제공함
-3. Backend Service에 ServiceMonitor가 선택할 `metadata.labels` 계약을 결정·추가함
-4. `servicemonitor-app.yaml.pending` selector와 Service `metadata.labels`가 실제로 일치함
-5. Service Port `http`와 ServiceMonitor endpoint가 일치함
-6. `.pending` 제거 전 server-side dry-run 및 Review 수행
-7. Merge/Argo CD Sync 후 Prometheus Target과 Application Metrics 수집 상태 확인
-
-`observability` Platform이 Running이라는 사실만으로 Application ServiceMonitor 또는 Application Metrics 수집 완료를 선언하지 않습니다.
-
-관련 추적: GitOps #86, #91, seokpan-docs 11 Kubernetes & Application Integration Runbook.
+관련 추적: GitOps #91, seokpan-app #78 / PR #80.
