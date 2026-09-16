@@ -123,8 +123,6 @@ endpoints:
       - "192.168.54.50"   # NFS
   - addresses:
       - "192.168.54.70"   # Ansible Controller
-  - addresses:
-      - "10.1.93.91"   # loadgen
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
