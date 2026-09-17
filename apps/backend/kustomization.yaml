@@ -15,4 +15,4 @@ resources:
 images:
   - name: harbor.seokpan.soldesk.store/seokpan/backend
     newName: harbor.seokpan.soldesk.store/seokpan/backend
-    digest: sha256:058cd048fd43498b9d2c11944428891b4aefff6f860254d1f5938416e4d3362f
+    digest: sha256:3e1dc20e754328025147c5d77de861231e5768c667ee7945735d229b2aa2ebec
