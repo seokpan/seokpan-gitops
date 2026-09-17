@@ -1,0 +1,125 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-17
+#
+# [배경] mariadb-01(52.40, Master)/mariadb-02(51.40, Slave)에 mysqld_exporter 설치 및
+# Prometheus job=mariadb-exporter target 정상화 완료(팀원 작업)에 따라 전용 대시보드 분리.
+#
+# [Replication 패널 보류] SHOW SLAVE STATUS 자체는 정상(Slave_IO/SQL_Running=Yes,
+# Seconds_Behind_Master=0)이지만 mysqld_exporter가 mysql_slave_status_* 필드를 노출하지
+# 못하는 이슈가 원인 미확정 상태(exporter 권한 vs 버전 호환성, 두 가능성 남음)로 후속 이슈
+# 분리 예정. 그때까지 이 대시보드에는 replication 관련 패널을 포함하지 않는다.
+#
+# [설계] External VM Overview와 동일하게 모든 패널에 `and on(instance)
+# (up{job="mariadb-exporter"} == 1)` 조인을 걸어 Down 인스턴스를 자동 제외한다.
+#
+# [Datasource] Prometheus가 isDefault: true이므로 datasource 명시 생략(기존 컨벤션 동일).
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-mariadb-overview
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  mariadb-overview.json: |
+    {
+      "title": "MariaDB Overview",
+      "uid": "seokpan-mariadb-overview",
+      "tags": ["seokpan", "mariadb", "db"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "instance",
+            "type": "query",
+            "datasource": null,
+            "query": "label_values(up{job=\"mariadb-exporter\"}, instance)",
+            "multi": true,
+            "includeAll": true,
+            "refresh": 2
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Target Status (UP/DOWN, Master/Slave)",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+              ]
+            }
+          },
+          "targets": [
+            { "expr": "up{job=\"mariadb-exporter\", instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Connections (current)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+          "targets": [
+            { "expr": "mysql_global_status_threads_connected{job=\"mariadb-exporter\"} and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}} - connected" },
+            { "expr": "mysql_global_status_threads_running{job=\"mariadb-exporter\"} and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}} - running" }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "QPS (Queries/sec)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+          "targets": [
+            { "expr": "rate(mysql_global_status_queries{job=\"mariadb-exporter\"}[5m]) and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Slow Queries (rate/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+          "targets": [
+            { "expr": "rate(mysql_global_status_slow_queries{job=\"mariadb-exporter\"}[5m]) and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "InnoDB Buffer Pool Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+          "targets": [
+            {
+              "expr": "(mysql_global_status_innodb_buffer_pool_pages_data{job=\"mariadb-exporter\"} / mysql_global_variables_innodb_buffer_pool_pages_total{job=\"mariadb-exporter\"} * 100) and on(instance) (up{job=\"mariadb-exporter\"} == 1)",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Uptime",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 22 },
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "targets": [
+            { "expr": "mysql_global_status_uptime{job=\"mariadb-exporter\"} and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Aborted Connections (rate/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 22 },
+          "targets": [
+            { "expr": "rate(mysql_global_status_aborted_connects{job=\"mariadb-exporter\"}[5m]) and on(instance) (up{job=\"mariadb-exporter\"} == 1)", "legendFormat": "{{instance}}" }
+          ]
+        }
+      ]
+    }
