@@ -205,3 +205,12 @@ data:
                   username: "${HARBOR_API_ROBOT_USERNAME}"
                   password: "${HARBOR_API_ROBOT_PASSWORD}"
                   description: "Harbor REST API robot account (seokpan project, Artifact/Tag 전용) - Ansible이 주입한 Secret 참조"
+              # [추가, 09/18] seokpan-app#98 GitOps Promotion 전용.
+              # 실제 값은 Ansible이 직접 주입하는 jenkins-gitops-promotion-credential
+              # Secret에서 Deployment env로 가져오며, GitOps main bypass 권한은 사용하지 않는다.
+              - usernamePassword:
+                  scope: GLOBAL
+                  id: "gitops-promotion-github"
+                  username: "${GITOPS_PROMOTION_USERNAME}"
+                  password: "${GITOPS_PROMOTION_TOKEN}"
+                  description: "GitHub seokpan-gitops promotion credential - Ansible injected Secret"
