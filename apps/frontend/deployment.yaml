@@ -8,6 +8,8 @@ kind: Deployment
 metadata:
   name: frontend
   namespace: application
+  annotations:
+    seokpan.io/app-source-commit: "0eb98405f6d7f8ed0545797200e1d4ece7fe9ca7"
 spec:
   replicas: 2
   strategy:
