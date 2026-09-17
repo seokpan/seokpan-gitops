@@ -71,7 +71,7 @@ data:
       "tags": ["seokpan", "service", "kpi", "m01", "m02"],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 3,
+      "version": 4,
       "refresh": "30s",
       "time": { "from": "now-6h", "to": "now" },
       "panels": [
@@ -258,13 +258,13 @@ data:
           "title": "2차 확장 예정 — ANALYSIS Runtime 배포 후 (현재 미배포)",
           "type": "row",
           "collapsed": true,
-          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
           "panels": [
             {
               "id": 9,
               "title": "ANALYSIS Runtime 미배포 안내",
               "type": "text",
-              "gridPos": { "h": 4, "w": 24, "x": 0, "y": 48 },
+              "gridPos": { "h": 4, "w": 24, "x": 0, "y": 36 },
               "options": {
                 "mode": "markdown",
                 "content": "12번 문서 3.3절: \"현재 1차 MVP에는 별도 ANALYSIS Runtime을 배포하지 않는다.\" AI 판세 분석 처리시간/실패율/stale 반영 건수 패널은 ANALYSIS Runtime이 실제 배포되고 메트릭 이름이 확정된 뒤 이 Row에 추가한다."

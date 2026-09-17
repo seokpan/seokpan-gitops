@@ -10,9 +10,11 @@
 # 서비스 레벨 KPI는 grafana-dashboard-m01-concurrency 참고. 이 파일은 그 둘과 분리된 파일이며
 # 서로의 패널을 중복 포함하지 않는다.
 #
-# [설계] 모든 패널 쿼리에 `and on(instance) (up{job="node-exporter-external"} == 1)` 조인을
-# 걸어 Target Down 상태인 VM(예: 미설치 구간의 vrouter-02/03/04, lb01)은 그래프에서 자동 제외되도록
-# 구성 — Down 인스턴스가 0 또는 stale 값으로 그래프에 섞여 오판을 유발하는 것을 방지하기 위함.
+# [설계] 모든 패널 쿼리에 instance=~"$instance" 필터 + `and on(instance)
+# (up{job="node-exporter-external"} == 1)` 조인을 걸어, ① $instance 변수 선택이
+# 모든 패널에 실제로 반영되고 ② Target Down 상태인 VM(예: 미설치 구간의 vrouter-02/03/04,
+# lb01)은 그래프에서 자동 제외되도록 구성 — PR 리뷰 Non-blocking 반영(최초 버전은
+# Target Status 패널에만 $instance가 걸려 있었음).
 # 개별 인스턴스의 UP/DOWN 자체는 별도 "Target Status" 패널로 명시적으로 노출한다.
 #
 # [Datasource] grafana-dashboard-provisioning.yaml에서 Prometheus가 isDefault: true이므로
@@ -76,7 +78,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
           "targets": [
             {
-              "expr": "(100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node-exporter-external\", mode=\"idle\"}[5m])) * 100)) and on(instance) (up{job=\"node-exporter-external\"} == 1)",
+              "expr": "(100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node-exporter-external\", instance=~\"$instance\", mode=\"idle\"}[5m])) * 100)) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
               "legendFormat": "{{instance}}"
             }
           ]
@@ -87,9 +89,9 @@ data:
           "type": "timeseries",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
           "targets": [
-            { "expr": "node_load1{job=\"node-exporter-external\"} and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - 1m" },
-            { "expr": "node_load5{job=\"node-exporter-external\"} and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - 5m" },
-            { "expr": "node_load15{job=\"node-exporter-external\"} and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - 15m" }
+            { "expr": "node_load1{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 1m" },
+            { "expr": "node_load5{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 5m" },
+            { "expr": "node_load15{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 15m" }
           ]
         },
         {
@@ -99,7 +101,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
           "targets": [
             {
-              "expr": "((1 - (node_memory_MemAvailable_bytes{job=\"node-exporter-external\"} / node_memory_MemTotal_bytes{job=\"node-exporter-external\"})) * 100) and on(instance) (up{job=\"node-exporter-external\"} == 1)",
+              "expr": "((1 - (node_memory_MemAvailable_bytes{job=\"node-exporter-external\", instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"node-exporter-external\", instance=~\"$instance\"})) * 100) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
               "legendFormat": "{{instance}}"
             }
           ]
@@ -110,8 +112,8 @@ data:
           "type": "timeseries",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
           "targets": [
-            { "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter-external\"}[5m]) and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - read" },
-            { "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter-external\"}[5m]) and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - write" }
+            { "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - read" },
+            { "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - write" }
           ]
         },
         {
@@ -121,7 +123,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
           "targets": [
             {
-              "expr": "(100 - ((node_filesystem_avail_bytes{job=\"node-exporter-external\", fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node-exporter-external\", fstype!~\"tmpfs|overlay\"}) * 100)) and on(instance) (up{job=\"node-exporter-external\"} == 1)",
+              "expr": "(100 - ((node_filesystem_avail_bytes{job=\"node-exporter-external\", instance=~\"$instance\", fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node-exporter-external\", instance=~\"$instance\", fstype!~\"tmpfs|overlay\"}) * 100)) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
               "legendFormat": "{{instance}} - {{mountpoint}}"
             }
           ]
@@ -132,8 +134,8 @@ data:
           "type": "timeseries",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
           "targets": [
-            { "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter-external\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - {{device}} rx" },
-            { "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter-external\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\"} == 1)", "legendFormat": "{{instance}} - {{device}} tx" }
+            { "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - {{device}} rx" },
+            { "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - {{device}} tx" }
           ]
         }
       ]
