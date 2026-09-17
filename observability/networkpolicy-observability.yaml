@@ -181,7 +181,7 @@ spec:
         - protocol: TCP
           port: 9104    # mysqld_exporter
         - protocol: TCP
-          port: 9101    # haproxy_exporter
+          port: 8404    # haproxy_exporter
         - protocol: TCP
           port: 9090    # harbor_exporter
 ---
