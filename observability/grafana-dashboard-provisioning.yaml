@@ -1,6 +1,14 @@
 # 작성자: 최유준
-# 작성 날짜: 2026-08-28
+# 작성 날짜: 2026-09-17
 #
+# [수정 근거] PR #<PR번호> 리뷰 Blocker 반영: 이 파일의 두 번째 YAML 문서로 있던
+# grafana-dashboard-m01-concurrency placeholder ConfigMap(panels: [])을 제거했다.
+# 동일 name/namespace의 ConfigMap이 observability/grafana-dashboard-m01-concurrency.yaml
+# 에도 정의되어 있어 ArgoCD Desired State에 같은 리소스가 두 파일에 동시에 소유되는
+# 문제(RepeatedResourceWarning, drift 추적 불가)가 있었다. 이제 이 파일은 Datasource
+# Provisioning(Loki)만 소유하고, m01-concurrency 대시보드는 전용 파일이 유일한 소유자다.
+#
+# [원본 배경 — 08-28 최초 작성 시 주석 유지]
 # [요구사항 근거] 12 문서: "Grafana | Dashboard·Datasource가 Provisioning 파일로만
 # 복원되는지(UI 직접 변경이 아님)" — 즉 UI에서 직접 만든 Dashboard는 검증 대상이 아니며,
 # 이 ConfigMap(및 향후 추가되는 Dashboard JSON)이 유일한 진실 소스여야 합니다.
@@ -8,9 +16,6 @@
 # [구조] kube-prometheus-stack Helm Chart의 Grafana sidecar 방식 사용 가정:
 # label(grafana_dashboard: "1")이 붙은 ConfigMap을 sidecar가 자동 탐지해서 Grafana에 로드.
 # Datasource(Prometheus/Loki)도 동일하게 sidecar 방식으로 Provisioning.
-#
-# [TODO] 실제 Dashboard JSON은 아직 작성 전 — 이 파일은 Datasource Provisioning +
-# 빈 Dashboard ConfigMap 뼈대만 포함. M-01~M-05 검증 축에 맞는 Dashboard는 이후 추가 예정.
 
 apiVersion: v1
 kind: ConfigMap
@@ -32,19 +37,3 @@ data:
         access: proxy
         url: http://loki.observability.svc.cluster.local:3100
         editable: false
----
-# Dashboard ConfigMap 뼈대 예시 (M-01: 동시성 정합성 대시보드, 내용은 추후 채움)
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-m01-concurrency
-  namespace: observability
-  labels:
-    grafana_dashboard: "1"
-data:
-  m01-concurrency.json: |
-    {
-      "title": "M-01 Concurrency Correctness (placeholder)",
-      "panels": []
-    }
-

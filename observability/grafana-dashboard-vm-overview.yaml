@@ -1,0 +1,142 @@
+# 작성자: 최유준
+# 작성 날짜: 2026-09-17
+#
+# [배경] seokpan-gitops#103: 외부 VM(VRouter x4, Ansible Controller, NFS, MaxScale-01)에
+# node_exporter 설치 및 Prometheus job=node-exporter-external target 정상화 작업 진행 중.
+# kube-prometheus-stack 기본 제공 kubernetes-mixin 대시보드는 job="node-exporter"로
+# 하드코딩되어 있어 외부 VM(job="node-exporter-external")이 잡히지 않으므로 별도 대시보드로 분리.
+#
+# [범위] Node/Infra 관점, 외부 VM 전용. K8s 클러스터 노드는 grafana-dashboard-infra-overview,
+# 서비스 레벨 KPI는 grafana-dashboard-m01-concurrency 참고. 이 파일은 그 둘과 분리된 파일이며
+# 서로의 패널을 중복 포함하지 않는다.
+#
+# [설계] 모든 패널 쿼리에 instance=~"$instance" 필터 + `and on(instance)
+# (up{job="node-exporter-external"} == 1)` 조인을 걸어, ① $instance 변수 선택이
+# 모든 패널에 실제로 반영되고 ② Target Down 상태인 VM(예: 미설치 구간의 vrouter-02/03/04,
+# lb01)은 그래프에서 자동 제외되도록 구성 — PR 리뷰 Non-blocking 반영(최초 버전은
+# Target Status 패널에만 $instance가 걸려 있었음).
+# 개별 인스턴스의 UP/DOWN 자체는 별도 "Target Status" 패널로 명시적으로 노출한다.
+#
+# [Datasource] grafana-dashboard-provisioning.yaml에서 Prometheus가 isDefault: true이므로
+# datasource를 명시하지 않고 기본값을 사용한다 (infra-overview와 동일 컨벤션).
+#
+# [TODO] node-exporter-external 미설치 구간(lb01 등)이 채워지면 Target Status 패널에서
+# 자동으로 UP 전환되어 보임 — 별도 패널 수정 불필요.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-vm-overview
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  vm-overview.json: |
+    {
+      "title": "External VM Overview",
+      "uid": "seokpan-vm-overview",
+      "tags": ["seokpan", "vm", "node-exporter-external"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "instance",
+            "type": "query",
+            "datasource": null,
+            "query": "label_values(up{job=\"node-exporter-external\"}, instance)",
+            "multi": true,
+            "includeAll": true,
+            "refresh": 2
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Target Status (UP/DOWN)",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+              ]
+            }
+          },
+          "targets": [
+            { "expr": "up{job=\"node-exporter-external\", instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "CPU Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+          "targets": [
+            {
+              "expr": "(100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node-exporter-external\", instance=~\"$instance\", mode=\"idle\"}[5m])) * 100)) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Load Average (1m/5m/15m)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+          "targets": [
+            { "expr": "node_load1{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 1m" },
+            { "expr": "node_load5{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 5m" },
+            { "expr": "node_load15{job=\"node-exporter-external\", instance=~\"$instance\"} and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - 15m" }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Memory Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+          "targets": [
+            {
+              "expr": "((1 - (node_memory_MemAvailable_bytes{job=\"node-exporter-external\", instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"node-exporter-external\", instance=~\"$instance\"})) * 100) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Disk IO (Read/Write bytes/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+          "targets": [
+            { "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - read" },
+            { "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - write" }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Disk Space Usage (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+          "targets": [
+            {
+              "expr": "(100 - ((node_filesystem_avail_bytes{job=\"node-exporter-external\", instance=~\"$instance\", fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node-exporter-external\", instance=~\"$instance\", fstype!~\"tmpfs|overlay\"}) * 100)) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)",
+              "legendFormat": "{{instance}} - {{mountpoint}}"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Network (Receive/Transmit bytes/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+          "targets": [
+            { "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - {{device}} rx" },
+            { "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter-external\", instance=~\"$instance\", device!=\"lo\"}[5m]) and on(instance) (up{job=\"node-exporter-external\", instance=~\"$instance\"} == 1)", "legendFormat": "{{instance}} - {{device}} tx" }
+          ]
+        }
+      ]
+    }
