@@ -10,6 +10,8 @@
 #    Harbor ca.key와 동일한 원칙: 절대 git에 커밋하지 않음)
 #  - jenkins-harbor-credential Secret - Ansible이 클러스터에 직접 주입 (GitOps 미포함,
 #    harbor-robot-account-draft/tasks/jenkins_harbor_secrets.yml 참고)
+#  - jenkins-gitops-promotion-credential Secret - seokpan-app#98 Promotion 전용.
+#    Ansible jenkins_secrets role이 먼저 주입되어야 하며 GitOps에는 Secret 값이 포함되지 않음.
 #
 # [해결됨, 2026-08-31] image를 jenkins/jenkins:2.568.2-lts-jdk17 → 2.568.2-lts-jdk21로 교체.
 # Docker Hub에서 실제 Tag 존재 확인(jenkins/jenkins:2.568.2-jdk21과 동일 digest의 alias 태그).
@@ -106,6 +108,18 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: jenkins-harbor-api-credential
+                  key: password
+            # [추가, 09/18] seokpan-app#98 GitOps Promotion 전용 GitHub Credential.
+            # Secret 자체는 seokpan-infra Ansible jenkins_secrets role이 먼저 주입한다.
+            - name: GITOPS_PROMOTION_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-gitops-promotion-credential
+                  key: username
+            - name: GITOPS_PROMOTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-gitops-promotion-credential
                   key: password
           volumeMounts:
             - name: jenkins-home
