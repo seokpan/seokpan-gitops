@@ -9,7 +9,7 @@ metadata:
   name: backend
   namespace: application
   annotations:
-    seokpan.io/app-source-commit: "c3bf7b35db8c9c4682d223ceb5b2d97334c24987"
+    seokpan.io/app-source-commit: "3c84443240de1f95b9316cf296e37f477d7b7630"
 spec:
   replicas: 2
   strategy:
