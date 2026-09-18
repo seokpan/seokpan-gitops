@@ -1,0 +1,21 @@
+# Owner: 최유준
+# Scope: Kubernetes / Delivery & Observability
+# Project: 石나가는 판단
+# Purpose: application ns HTTPRoute가 argocd ns의 argocd-server Service를 참조할 수 있도록 허용
+# 관련: seokpan-gitops#117
+# Created: 2026-09-18
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-application-httproute-to-argocd-server
+  namespace: argocd
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: application
+  to:
+    - group: ""
+      kind: Service
+      name: argocd-server
