@@ -1,0 +1,28 @@
+# Owner: 최유준
+# Scope: Kubernetes / Delivery & Observability
+# Project: 石나가는 판단
+# Purpose: argocd 네임스페이스 raw manifest GitOps Child Application
+# 관련: seokpan-gitops#117
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seokpan/seokpan-gitops.git
+    targetRevision: main
+    path: platform/argocd/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
