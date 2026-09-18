@@ -107,6 +107,15 @@ spec:
                 secretKeyRef:
                   name: jenkins-harbor-api-credential
                   key: password
+            # [추가, 2026-09-18] seokpan-gitops#57 Step 9 GitOps PR 자동화 전용.
+            # seokpan-ci-bot 계정의 GitHub fine-grained PAT(Contents/Pull requests R/W,
+            # seokpan-gitops 리포 한정). Ansible이 jenkins-github-gitops-credential Secret으로
+            # 직접 주입 (GitOps 미포함, harbor-* 계열과 동일 원칙).
+            - name: GITHUB_GITOPS_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-github-gitops-credential
+                  key: password
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home

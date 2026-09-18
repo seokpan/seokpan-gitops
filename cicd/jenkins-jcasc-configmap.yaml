@@ -205,3 +205,14 @@ data:
                   username: "${HARBOR_API_ROBOT_USERNAME}"
                   password: "${HARBOR_API_ROBOT_PASSWORD}"
                   description: "Harbor REST API robot account (seokpan project, Artifact/Tag 전용) - Ansible이 주입한 Secret 참조"
+              # [추가, 2026-09-18] seokpan-gitops#57 Step 9 GitOps PR 자동화 전용.
+              # seokpan-ci-bot 계정의 GitHub PAT. Jenkinsfile-image-pipeline의
+              # GitOps Branch & PR Stage가 container('python')에서 git clone/push 및
+              # GitHub REST API PR 생성 호출에 사용. 실제 값은 jenkins-github-gitops-credential
+              # Secret(Ansible이 직접 주입)에서 Deployment env로 끌어온 뒤 ${} 치환으로만 참조.
+              - usernamePassword:
+                  scope: GLOBAL
+                  id: "github-gitops-bot-pat"
+                  username: "seokpan-ci-bot"
+                  password: "${GITHUB_GITOPS_BOT_TOKEN}"
+                  description: "seokpan-ci-bot GitHub fine-grained PAT (seokpan-gitops repo 한정, GitOps PR 자동화용) - Ansible이 주입한 Secret 참조"
