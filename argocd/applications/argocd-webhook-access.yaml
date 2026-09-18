@@ -4,7 +4,7 @@
 # Purpose: argocd 네임스페이스 raw manifest GitOps Child Application
 # 관련: seokpan-gitops#117
 
-apiVersion: argoproj.io/v1
+apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: argocd-webhook-access
