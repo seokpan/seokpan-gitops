@@ -4,10 +4,10 @@
 # Purpose: argocd 네임스페이스 raw manifest GitOps Child Application
 # 관련: seokpan-gitops#117
 
-apiVersion: argoproj.io/v1alpha1
+apiVersion: argoproj.io/v1
 kind: Application
 metadata:
-  name: argocd-platform
+  name: argocd-webhook-access
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -16,7 +16,7 @@ spec:
   source:
     repoURL: https://github.com/seokpan/seokpan-gitops.git
     targetRevision: main
-    path: platform/argocd/base
+    path: platform/argocd-webhook-access/base
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
