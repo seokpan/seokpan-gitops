@@ -39,7 +39,7 @@ seokpan-gitops/
 | CI/CD | [`cicd/`](cicd) | Jenkins |
 | Observability | [`observability/`](observability) | Prometheus, Grafana, Loki, Alloy, Alertmanager |
 
-> HPA, NetworkPolicy 등은 아직 저장소에 없으며, 도입 시 `apps/`·`platform/`에 추가합니다.
+> HPA는 아직 저장소에 없습니다. [Observability NetworkPolicy](observability/networkpolicy-observability.yaml)는 `observability/`에 있으며, [Observability Argo CD Application](argocd/applications/observability.yaml)이 해당 경로를 참조합니다. 이는 Observability 영역의 Desired State로, Application·Platform 전체에 NetworkPolicy가 적용됐거나 현재 클러스터의 실효 정책을 확인했다는 의미는 아닙니다.
 
 ## 작업 방법
 
