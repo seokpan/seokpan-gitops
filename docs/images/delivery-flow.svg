@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="725" viewBox="0 0 1000 725" role="img" aria-labelledby="title desc"><title id="title">Delivery: automation with a review gate</title><desc id="desc">Read the numbered stages in order / source, image, desired state and runtime</desc><rect width="1000" height="725" rx="20" fill="#f6f8fc"/>
+<text x="32" y="44" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" fill="#12253f">Delivery: automation with a review gate</text>
+<text x="32" y="74" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="400" fill="#42526b">Read the numbered stages in order / source, image, desired state and runtime</text>
+<text x="32" y="110" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" fill="#52647d">AUTOMATED / JENKINS</text>
+<rect x="32" y="128" width="456" height="128" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="32" y="142" width="4" height="26" rx="2" fill="#2563eb"/>
+<text x="52" y="164" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#2563eb">01  App main / source commit</text>
+<text x="52" y="194" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Test · Build · Scan · Health</text>
+<text x="52" y="219" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Pin source SHA for each component</text>
+<rect x="512" y="128" width="456" height="128" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="512" y="142" width="4" height="26" rx="2" fill="#2563eb"/>
+<text x="532" y="164" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#2563eb">02  Harbor / verified images</text>
+<text x="532" y="194" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Resolve final image digests</text>
+<text x="532" y="219" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Record build and source evidence</text>
+<rect x="32" y="280" width="936" height="106" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="32" y="294" width="4" height="26" rx="2" fill="#2563eb"/>
+<text x="52" y="316" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#2563eb">03  GitOps Promotion PR</text>
+<text x="52" y="346" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Create branch + commit + PR for the affected components</text>
+<text x="32" y="422" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" fill="#52647d">TEAM REVIEW / APPROVAL REQUIRED</text>
+<rect x="32" y="440" width="936" height="106" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="32" y="454" width="4" height="26" rx="2" fill="#9a4b0a"/>
+<text x="52" y="476" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#9a4b0a">04  Review and merge</text>
+<text x="52" y="506" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Verify image changes and evidence; merge the PR into GitOps main</text>
+<text x="32" y="582" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" fill="#52647d">RECONCILIATION / ARGO CD</text>
+<rect x="32" y="600" width="456" height="98" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="32" y="614" width="4" height="26" rx="2" fill="#0f766e"/>
+<text x="52" y="636" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#0f766e">05  Argo CD Sync</text>
+<text x="52" y="666" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">App-of-Apps · desired state</text>
+<rect x="512" y="600" width="456" height="98" rx="12" fill="#fff" stroke="#ccd7e6"/><rect x="512" y="614" width="4" height="26" rx="2" fill="#0f766e"/>
+<text x="532" y="636" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#0f766e">06  Kubernetes workloads</text>
+<text x="532" y="666" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="400" fill="#42526b">Apply the approved image revisions</text>
+</svg>
