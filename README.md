@@ -29,15 +29,15 @@ seokpan-gitops/
 
 각 디렉터리의 세부 리소스 구성은 [`apps/README.md`](apps/README.md) 및 각 하위 폴더에서 직접 확인합니다.
 
-## 관리 영역 요약
+## 핵심 기술과 관리 영역
 
-| 영역 | 경로 | 주요 대상 |
+| 영역 | 경로 | 이 저장소에서 관리하는 설정 |
 |---|---|---|
-| Argo CD | [`argocd/applications/`](argocd/applications) | App-of-Apps 루트/자식 Application |
-| 애플리케이션 | [`apps/`](apps) | Frontend/Backend Deployment, Service, ConfigMap |
-| 플랫폼 공통 | [`platform/`](platform) | Gateway, Redis, Storage(NFS Provisioner), Namespace, RBAC |
-| CI/CD | [`cicd/`](cicd) | Jenkins |
-| Observability | [`observability/`](observability) | Prometheus, Grafana, Loki, Alloy, Alertmanager |
+| Argo CD | [`argocd/applications/`](argocd/applications) | App-of-Apps 루트·자식 Application으로 동기화 대상 정의 |
+| 애플리케이션 | [`apps/`](apps) | Frontend·Backend Deployment, Service, ConfigMap 정의 |
+| 플랫폼 공통 | [`platform/`](platform) | Gateway, Redis, NFS Provisioner, Namespace, RBAC 설정 |
+| CI/CD | [`cicd/`](cicd) | Jenkins Deployment·Service·PVC·RBAC 설정 |
+| 관측성 | [`observability/`](observability) | Prometheus·Grafana 메트릭 구성과 Alloy·Loki 로그, Alertmanager 알림 설정 |
 
 > HPA는 아직 저장소에 없습니다. [Observability NetworkPolicy](observability/networkpolicy-observability.yaml)는 `observability/`에 있으며, [Observability Argo CD Application](argocd/applications/observability.yaml)이 해당 경로를 참조합니다. 이는 Observability 영역의 Desired State로, Application·Platform 전체에 NetworkPolicy가 적용됐거나 현재 클러스터의 실효 정책을 확인했다는 의미는 아닙니다.
 
