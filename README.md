@@ -6,10 +6,9 @@
 
 ## 배포 흐름
 
-```text
-개발자 코드 변경 → seokpan-app → Jenkins(빌드) → Harbor(이미지 저장)
-→ seokpan-gitops(이미지 Tag/Digest 변경) → Argo CD(Git 변경 감지) → Kubernetes(새 Pod 실행)
-```
+![검증된 이미지에서 GitOps PR 생성, 팀원 승인, Argo CD 배포까지의 흐름](docs/images/delivery-flow.svg)
+
+숫자 순서대로 코드·이미지·배포 설정이 반영됩니다. App의 [이미지 파이프라인](https://github.com/seokpan/seokpan-app/blob/main/Jenkinsfile.image-pipeline)이 검증된 이미지의 Digest를 확정하고, [Promotion 스크립트](https://github.com/seokpan/seokpan-app/blob/main/scripts/promote_gitops.py)가 변경 대상 컴포넌트의 GitOps PR을 생성합니다. **팀원 리뷰·승인·Merge 후** Argo CD가 배포 설정을 동기화합니다. 자동 PR 생성과 배포 승인은 별도 단계입니다.
 
 Kubernetes를 `kubectl edit/apply`로 직접 바꾸지 않고, 이 저장소의 파일을 PR로 변경 → merge → Argo CD Sync로 반영하는 것이 기본 원칙입니다.
 
@@ -30,17 +29,17 @@ seokpan-gitops/
 
 각 디렉터리의 세부 리소스 구성은 [`apps/README.md`](apps/README.md) 및 각 하위 폴더에서 직접 확인합니다.
 
-## 관리 영역 요약
+## 핵심 기술과 관리 영역
 
-| 영역 | 경로 | 주요 대상 |
+| 영역 | 경로 | 이 저장소에서 관리하는 설정 |
 |---|---|---|
-| Argo CD | [`argocd/applications/`](argocd/applications) | App-of-Apps 루트/자식 Application |
-| 애플리케이션 | [`apps/`](apps) | Frontend/Backend Deployment, Service, ConfigMap |
-| 플랫폼 공통 | [`platform/`](platform) | Gateway, Redis, Storage(NFS Provisioner), Namespace, RBAC |
-| CI/CD | [`cicd/`](cicd) | Jenkins |
-| Observability | [`observability/`](observability) | Prometheus, Grafana, Loki, Alloy, Alertmanager |
+| Argo CD | [`argocd/applications/`](argocd/applications) | App-of-Apps 루트·자식 Application으로 동기화 대상 정의 |
+| 애플리케이션 | [`apps/`](apps) | Frontend·Backend Deployment, Service, ConfigMap 정의 |
+| 플랫폼 공통 | [`platform/`](platform) | Gateway, Redis, NFS Provisioner, Namespace, RBAC 설정 |
+| CI/CD | [`cicd/`](cicd) | Jenkins Deployment·Service·PVC·RBAC 설정 |
+| 관측성 | [`observability/`](observability) | Prometheus·Grafana 메트릭 구성과 Alloy·Loki 로그, Alertmanager 알림 설정 |
 
-> HPA, NetworkPolicy 등은 아직 저장소에 없으며, 도입 시 `apps/`·`platform/`에 추가합니다.
+> HPA는 아직 저장소에 없습니다. [Observability NetworkPolicy](observability/networkpolicy-observability.yaml)는 `observability/`에 있으며, [Observability Argo CD Application](argocd/applications/observability.yaml)이 해당 경로를 참조합니다. 이는 Observability 영역의 Desired State로, Application·Platform 전체에 NetworkPolicy가 적용됐거나 현재 클러스터의 실효 정책을 확인했다는 의미는 아닙니다.
 
 ## 작업 방법
 
