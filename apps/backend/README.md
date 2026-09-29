@@ -4,18 +4,17 @@
 
 ## 현재 단계
 
-Production Provider의 2 Replica 공유 상태 검증 단계입니다.
+현재 [Deployment](deployment.yaml)는 `replicas: 2`를 선언합니다. A-10의 Provider·Frontend·Gateway 통합 기록은 [1차 종료 시점 상태](https://github.com/seokpan/seokpan-docs/blob/main/CURRENT_STATE.md)에서 확인합니다. 이 README는 현재 선언과 운영 계약을 안내하며, 추가 실행 검증의 완료 여부를 별도로 판정하지 않습니다.
 
-- Deployment는 1 Replica Provider Gate 통과 후 `replicas: 2`로 확장합니다.
 - 두 Pod는 `kubernetes.io/hostname` 기준 `DoNotSchedule` Topology Spread를 사용해 두 Worker에 분산합니다.
 - RollingUpdate는 `maxSurge: 0`, `maxUnavailable: 1`로 고정해 두 Worker가 모두 사용 중인 상태에서도 강제 분산 규칙과 교착되지 않고 한 Pod씩 교체합니다.
-- PodDisruptionBudget `minAvailable: 1`로 계획된 중단에서 두 Pod가 동시에 축출되지 않도록 합니다.
-- Image는 A-10 Production Provider 구현과 보안 보완을 포함한 Backend Digest `sha256:c120c4b80c86dac8bdec7a4dd3be11edf46384f8ddb7007c713e5c6cbc594e54`로 고정합니다.
+- PodDisruptionBudget `minAvailable: 1`은 Eviction API를 사용하는 계획된 축출에서 최소 한 Pod를 유지합니다.
+- 현재 Image Digest는 [`kustomization.yaml`](kustomization.yaml)의 `images` 항목을 기준으로 합니다. 과거 검증 이미지의 Digest를 현재 값으로 복제하지 않습니다.
 - Deployment는 `application/harbor-pull-secret`을 명시적으로 참조합니다.
 - Argo CD Child Application `apps-backend`는 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리합니다.
 - 실제 DB URL 및 Credential은 Git에 포함하지 않습니다.
 
-App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존 검증을 완료했습니다. Backend 1 Replica에서 승인 Image·공개 CA Mount, 실제 MariaDB 두 역할과 Redis Provider readiness, 세 Health Endpoint, Argo CD Healthy를 확인했으므로 두 Replica의 공유 Session·상태 수렴 검증으로 진행합니다.
+초기 활성화에서는 App #22 승인에 따른 Alembic `20260902_0002` 적용과 데이터 보존을 검증하고, Backend 1 Replica에서 승인 Image·공개 CA Mount, 실제 MariaDB 두 역할과 Redis Provider readiness, 세 Health Endpoint, Argo CD Healthy를 확인했습니다. 아래 초기 활성화 기록은 그 단계의 근거이며 현재 Replica 수나 모든 후속 검증의 완료를 대신하지 않습니다.
 
 ## Runtime 계약
 
@@ -114,13 +113,13 @@ Migration DB Secret:
 
 CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를 확인합니다.
 
-현재 `kustomization.yaml`의 `images` 항목은 A-10 Production Provider 구현과 보안 보완을 포함한 검증 Image Digest로 고정되어 있습니다. 이후 Image 갱신 자동화 방식은 별도 설계하며, 승인된 GitOps PR에서 같은 Image 항목의 Digest를 변경합니다.
+[App 이미지 파이프라인](https://github.com/seokpan/seokpan-app/blob/main/Jenkinsfile.image-pipeline)이 검증 이미지를 확정하고, [Promotion 스크립트](https://github.com/seokpan/seokpan-app/blob/main/scripts/promote_gitops.py)가 변경 대상 컴포넌트의 GitOps PR을 생성합니다. 팀원 리뷰·승인·Merge 후 Argo CD가 변경된 선언을 동기화합니다. 현재 Digest는 `kustomization.yaml`에서 확인하며 자동 PR 생성과 배포 승인을 구분합니다.
 
 `latest`는 사용하지 않습니다.
 
 ## Runtime 활성화 Gate
 
-다음 선행 조건을 기준으로 이 변경에서 Backend 한 개 Replica를 활성화합니다.
+아래는 초기 1 Replica 활성화와 2 Replica 전환 당시의 체크포인트입니다. 현재 실행할 일괄 지시나 현재 미완료 목록이 아니며, 당시 확인한 값·Revision과 전환 계획을 보존합니다.
 
 1. Backend Container Image 존재 — 완료
 2. Harbor Push 및 실제 Digest 확인 — 완료
@@ -138,11 +137,11 @@ CI는 `git-<main-commit-12자리>` Tag로 Harbor에 Push한 뒤 실제 Digest를
 10. Argo CD Child Application 연결 — 완료
     - `apps-backend`가 Root Application에 편입되어 `apps/backend`를 `main` 기준으로 관리하며 `prune: true`, `selfHeal: true`를 사용합니다.
     - 1 Replica 활성화 Revision `843dbea031b6549b9d056a35d60334d23a0c38b7`의 Sync/Health를 확인했습니다.
-11. `replicas: 2` 공유 상태 검증 — 롤링 전략 보완 후 재개
+11. `replicas: 2` 공유 상태 검증 — 당시 롤링 전략 보완 후 재개 계획
     - 최초 적용에서 기존 두 Pod가 두 Worker를 점유한 채 Surge Pod를 먼저 생성해 `DoNotSchedule`과 교착되는 것을 확인했습니다. 기존 두 Pod는 Ready 상태를 유지해 서비스 장애는 없었습니다.
-    - `maxSurge: 0`, `maxUnavailable: 1` 적용 후 두 Worker 분산, PDB, 두 Pod Ready, 한 Pod에서 발급한 Guest Session의 다른 Pod 조회·폐기, 폐기 후 원 Pod 거부를 확인합니다.
+    - 당시 재개 계획은 `maxSurge: 0`, `maxUnavailable: 1` 적용 후 두 Worker 분산, PDB, 두 Pod Ready, 한 Pod에서 발급한 Guest Session의 다른 Pod 조회·폐기, 폐기 후 원 Pod 거부를 확인하는 것이었습니다.
 
-2 Replica 교차 검증이 통과하기 전에는 Frontend·Gateway를 활성화하지 않습니다.
+초기에는 이 2 Replica 교차 검증을 Frontend·Gateway 활성화의 선행조건으로 두었습니다. 후속 통합 기록은 상단의 1차 종료 시점 상태에서 추적하며, 이 과거 체크포인트를 현재 Frontend·Gateway 미활성 상태로 읽지 않습니다.
 
 ## 후속 연결
 
