@@ -60,3 +60,4 @@ stringData:
         email_configs:
           - to: "seokpan@soldesk.store"  
             send_resolved: true
+
