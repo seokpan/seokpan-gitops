@@ -4,6 +4,8 @@
 
 애플리케이션 소스는 [`seokpan-app`](https://github.com/seokpan/seokpan-app), 서버/네트워크/K8s 부트스트랩은 [`seokpan-infra`](https://github.com/seokpan/seokpan-infra), 설계·검증 문서는 [`seokpan-docs`](https://github.com/seokpan/seokpan-docs)에서 관리합니다.
 
+> 1차 프로젝트 종료 판정·최종 확인된 배포 근거·남은 공식 검증 경계는 [공용 CURRENT_STATE](https://github.com/seokpan/seokpan-docs/blob/main/CURRENT_STATE.md)의 13절을 먼저 확인합니다. 1차 종료는 이 저장소의 Desired State를 삭제·동결·Archive하거나 운영 Cluster를 변경하는 명령이 아니며, 이후 변경은 기존 PR·Review·Argo CD 절차를 따릅니다.
+
 ## 배포 흐름
 
 ![검증된 이미지에서 GitOps PR 생성, 팀원 승인, Argo CD 배포까지의 흐름](docs/images/delivery-flow.svg)
