@@ -11,7 +11,7 @@ metadata:
   annotations:
     seokpan.io/app-source-commit: "a75867b7b579de08b14fe93f80b1a7b05cc85890"
 spec:
-  replicas: 2
+  replicas: 0
   strategy:
     type: RollingUpdate
     rollingUpdate:
